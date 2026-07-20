@@ -1,22 +1,20 @@
 import Link from 'next/link';
 import { siteConfig, getWhatsappUrl, getTelegramUrl } from '@/lib/site-config';
+import Reveal from '@/components/Reveal';
 
 export default function LandingPage() {
   const steps = [
     {
       label: 'Kami pantau',
       desc: 'TikTok, YouTube, dan berita tentang merek Anda, 24 jam.',
-      color: 'scan',
     },
     {
       label: 'Sistem kami olah datanya',
       desc: 'Memisahkan sinyal penting dari noise harian.',
-      color: 'workflow',
     },
     {
       label: 'Anda dapat insight',
       desc: 'Bukan data mentah, tapi rekomendasi yang bisa langsung dipakai.',
-      color: 'brand',
     },
   ];
 
@@ -32,76 +30,116 @@ export default function LandingPage() {
 
       {/* HERO */}
       <section className="hero">
-        <p className="eyebrow">{siteConfig.tagline}</p>
-        <h1>Rasakan detak merek Anda, sebelum orang lain bicara duluan.</h1>
-        <p className="subhead">
-          {siteConfig.productName} memantau TikTok, YouTube, dan berita secara real-time — dan
-          memberi tahu Anda saat ada yang penting, bukan saat semuanya sudah terlambat.
-        </p>
+        <Reveal>
+          <p className="eyebrow">{siteConfig.tagline}</p>
+        </Reveal>
+        <Reveal delay={100}>
+          <h1>Rasakan detak merek Anda, sebelum orang lain bicara duluan.</h1>
+        </Reveal>
+        <Reveal delay={200}>
+          <p className="subhead">
+            {siteConfig.productName} memantau TikTok, YouTube, dan berita secara real-time — dan
+            memberi tahu Anda saat ada yang penting, bukan saat semuanya sudah terlambat.
+          </p>
+        </Reveal>
 
-        <div className="signal-card">
-          <span className="signal-dot" />
-          <span className="signal-text">Mention negatif naik 340% dalam 2 jam</span>
-        </div>
+        {/* Signature: animated signal line — line yang "hidup", merepresentasikan
+            konsep inti produk (menemukan sinyal dari noise) */}
+        <Reveal delay={300}>
+          <div className="signal-wrap">
+            <svg viewBox="0 0 600 80" className="signal-svg" preserveAspectRatio="none">
+              <polyline
+                className="signal-line-bg"
+                points="0,40 60,40 90,40 110,15 130,65 150,40 200,40 260,40 290,40 310,10 330,70 350,40 420,40 480,40 510,40 530,20 550,60 570,40 600,40"
+              />
+              <polyline
+                className="signal-line"
+                points="0,40 60,40 90,40 110,15 130,65 150,40 200,40 260,40 290,40 310,10 330,70 350,40 420,40 480,40 510,40 530,20 550,60 570,40 600,40"
+              />
+            </svg>
+            <div className="signal-card">
+              <span className="signal-dot" />
+              <span className="signal-text">Mention negatif naik 340% dalam 2 jam</span>
+            </div>
+          </div>
+        </Reveal>
 
-        <div className="cta-row">
-          <a href={getWhatsappUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-wa">
-            Chat via WhatsApp
-          </a>
-          <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-tg">
-            Chat via Telegram
-          </a>
-        </div>
+        <Reveal delay={400}>
+          <div className="cta-row">
+            <a href={getWhatsappUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+              Chat via WhatsApp
+            </a>
+            <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-ghost">
+              Chat via Telegram
+            </a>
+          </div>
+        </Reveal>
       </section>
 
       {/* PROBLEM */}
       <section className="problem">
-        <h2>Merek besar bukan yang paling sering diposting</h2>
-        <p className="section-sub">
-          Tapi yang paling cepat tahu kapan harus bicara, kapan harus diam, dan kapan harus
-          bertindak.
-        </p>
+        <Reveal>
+          <h2>Merek besar bukan yang paling sering diposting</h2>
+          <p className="section-sub">
+            Tapi yang paling cepat tahu kapan harus bicara, kapan harus diam, dan kapan harus
+            bertindak.
+          </p>
+        </Reveal>
         <ul>
-          <li>Anda tahu ada masalah dari komplain viral, bukan dari sistem yang memantau</li>
-          <li>Laporan performa bulanan datang terlalu telat untuk diputuskan apa-apa</li>
-          <li>Kompetitor bergerak duluan karena mereka tahu duluan</li>
+          {[
+            'Anda tahu ada masalah dari komplain viral, bukan dari sistem yang memantau',
+            'Laporan performa bulanan datang terlalu telat untuk diputuskan apa-apa',
+            'Kompetitor bergerak duluan karena mereka tahu duluan',
+          ].map((item, i) => (
+            <Reveal delay={i * 100} key={item}>
+              <li>{item}</li>
+            </Reveal>
+          ))}
         </ul>
       </section>
 
       {/* HOW IT WORKS */}
       <section className="how">
-        <h2>Cara kerjanya</h2>
+        <Reveal>
+          <h2>Cara kerjanya</h2>
+        </Reveal>
         <div className="steps">
           {steps.map((s, i) => (
-            <div className={`step step-${s.color}`} key={s.label}>
-              <span className="step-number">{i + 1}</span>
-              <h3>{s.label}</h3>
-              <p>{s.desc}</p>
-            </div>
+            <Reveal delay={i * 120} key={s.label}>
+              <div className="step">
+                <span className="step-number">{i + 1}</span>
+                <h3>{s.label}</h3>
+                <p>{s.desc}</p>
+              </div>
+            </Reveal>
           ))}
         </div>
       </section>
 
       {/* PRICING */}
       <section className="pricing">
-        <h2>Harga</h2>
-        <p>
-          Mulai dari <strong>Rp 300 ribuan/bulan</strong> untuk pemantauan dasar, hingga paket
-          custom untuk kebutuhan enterprise. Tanpa kontrak panjang, tanpa biaya tersembunyi.
-        </p>
+        <Reveal>
+          <h2>Harga</h2>
+          <p>
+            Mulai dari <strong>Rp 300 ribuan/bulan</strong> untuk pemantauan dasar, hingga paket
+            custom untuk kebutuhan enterprise. Tanpa kontrak panjang, tanpa biaya tersembunyi.
+          </p>
+        </Reveal>
       </section>
 
       {/* FINAL CTA */}
       <section className="final-cta">
-        <h2>Siap tahu duluan?</h2>
-        <div className="cta-row">
-          <a href={getWhatsappUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-wa">
-            Chat via WhatsApp
-          </a>
-          <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-tg">
-            Chat via Telegram
-          </a>
-        </div>
+        <Reveal>
+          <h2>Siap tahu duluan?</h2>
+          <div className="cta-row">
+            <a href={getWhatsappUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-primary">
+              Chat via WhatsApp
+            </a>
+            <a href={getTelegramUrl()} target="_blank" rel="noopener noreferrer" className="btn btn-ghost-dark">
+              Chat via Telegram
+            </a>
+          </div>
+        </Reveal>
       </section>
 
       {/* FOOTER */}
@@ -112,102 +150,143 @@ export default function LandingPage() {
       </footer>
 
       <style>{`
-        :root {
-          --bg-page: #0f1115;
-          --bg-card: #ffffff;
-          --bg-card-soft: #fbfbfa;
-          --ink: #1a1a1a;
-          --ink-soft: #57534e;
-          --ink-faint: #8a8a85;
-          --line: #e7e5e0;
-          --accent: #0F6E5C;
+        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
 
-          --brand-bg: #E1F5EE; --brand-bd: #0F6E5C; --brand-tx: #085041;
-          --scan-bg: #E6F1FB; --scan-bd: #185FA5; --scan-tx: #0C447C;
-          --workflow-bg: #FAEEDA; --workflow-bd: #854F0B; --workflow-tx: #633806;
+        :root {
+          --navy: #3356AA;
+          --gold: #D1A617;
+          --cream: #FFEFCA;
+          --brown: #857555;
+          --ink: #2A2620;
+          --white: #FFFFFF;
         }
 
+        * { box-sizing: border-box; }
+
         .landing {
-          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+          font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           color: var(--ink);
-          background: var(--bg-card-soft);
+          background: var(--white);
         }
 
         .nav {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          padding: 20px 28px;
-          background: var(--bg-page);
+          padding: 22px 32px;
+          background: var(--navy);
         }
         .logo {
-          font-family: Georgia, "Iowan Old Style", serif;
-          font-size: 20px;
+          font-family: 'Fraunces', serif;
+          font-size: 21px;
           font-weight: 600;
-          color: #f4f3ee;
+          color: var(--cream);
+          letter-spacing: -0.01em;
         }
         .nav-login {
-          color: #d6d4cb;
+          color: var(--cream);
           font-size: 13px;
+          font-weight: 500;
           text-decoration: none;
-          border: 1px solid #2c2f38;
-          padding: 6px 16px;
+          border: 1px solid rgba(255,239,202,0.4);
+          padding: 7px 18px;
           border-radius: 999px;
+          transition: background 0.25s ease, border-color 0.25s ease;
+        }
+        .nav-login:hover {
+          background: rgba(255,239,202,0.12);
+          border-color: var(--cream);
         }
 
         .hero {
-          background: var(--bg-page);
-          color: #f4f3ee;
-          padding: 64px 28px 80px;
+          background: var(--navy);
+          color: var(--cream);
+          padding: 72px 28px 56px;
           text-align: center;
         }
         .eyebrow {
           font-size: 11px;
-          letter-spacing: .12em;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: #9c9a92;
-          font-weight: 600;
-          margin-bottom: 16px;
+          color: var(--gold);
+          font-weight: 700;
+          margin: 0 0 18px;
         }
         .hero h1 {
-          font-family: Georgia, "Iowan Old Style", serif;
-          font-size: clamp(28px, 5vw, 44px);
-          max-width: 700px;
-          margin: 0 auto 16px;
-          line-height: 1.2;
+          font-family: 'Fraunces', serif;
+          font-weight: 600;
+          font-size: clamp(30px, 5vw, 48px);
+          max-width: 720px;
+          margin: 0 auto 18px;
+          line-height: 1.18;
+          color: var(--white);
         }
         .subhead {
-          color: #b9b7ad;
+          color: rgba(255,239,202,0.82);
           font-size: 16px;
-          max-width: 560px;
-          margin: 0 auto 32px;
-          line-height: 1.6;
+          max-width: 540px;
+          margin: 0 auto 40px;
+          line-height: 1.65;
+        }
+
+        .signal-wrap {
+          position: relative;
+          max-width: 600px;
+          margin: 0 auto 40px;
+        }
+        .signal-svg {
+          width: 100%;
+          height: 60px;
+          display: block;
+        }
+        .signal-line-bg {
+          fill: none;
+          stroke: rgba(255,239,202,0.15);
+          stroke-width: 2;
+        }
+        .signal-line {
+          fill: none;
+          stroke: var(--gold);
+          stroke-width: 2.5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 900;
+          stroke-dashoffset: 900;
+          animation: draw-signal 2.4s cubic-bezier(0.65, 0, 0.35, 1) forwards, glow-signal 2.5s ease-in-out 2.4s infinite;
+        }
+        @keyframes draw-signal {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes glow-signal {
+          0%, 100% { filter: drop-shadow(0 0 0px var(--gold)); }
+          50% { filter: drop-shadow(0 0 6px var(--gold)); }
         }
 
         .signal-card {
           display: inline-flex;
           align-items: center;
           gap: 10px;
-          background: #1a1d24;
-          border: 1px solid #2c2f38;
+          background: rgba(255,239,202,0.08);
+          border: 1px solid rgba(255,239,202,0.25);
           border-radius: 12px;
-          padding: 12px 20px;
-          margin-bottom: 40px;
+          padding: 12px 22px;
+          margin-top: -10px;
         }
         .signal-dot {
           width: 8px;
           height: 8px;
           border-radius: 50%;
-          background: #febb00;
+          background: var(--gold);
           animation: pulse 1.6s ease-in-out infinite;
         }
         .signal-text {
           font-size: 13px;
-          color: #f4f3ee;
+          color: var(--cream);
+          font-weight: 500;
         }
         @keyframes pulse {
           0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.3); }
+          50% { opacity: 0.35; transform: scale(1.4); }
         }
 
         .cta-row {
@@ -218,98 +297,150 @@ export default function LandingPage() {
         }
         .btn {
           display: inline-block;
-          padding: 12px 24px;
+          padding: 13px 26px;
           border-radius: 10px;
           font-size: 14px;
           font-weight: 600;
           text-decoration: none;
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
         }
-        .btn-wa { background: #25D366; color: #05330f; }
-        .btn-tg { background: #229ED9; color: #fff; }
+        .btn:hover {
+          transform: translateY(-2px);
+        }
+        .btn-primary {
+          background: var(--gold);
+          color: var(--navy);
+        }
+        .btn-primary:hover {
+          box-shadow: 0 8px 20px rgba(209,166,23,0.35);
+        }
+        .btn-ghost {
+          background: transparent;
+          color: var(--cream);
+          border: 1px solid rgba(255,239,202,0.4);
+        }
+        .btn-ghost:hover {
+          background: rgba(255,239,202,0.1);
+        }
+        .btn-ghost-dark {
+          background: transparent;
+          color: var(--navy);
+          border: 1px solid rgba(51,86,170,0.4);
+        }
+        .btn-ghost-dark:hover {
+          background: rgba(51,86,170,0.08);
+        }
 
         section:not(.hero):not(.final-cta) {
           max-width: 720px;
           margin: 0 auto;
-          padding: 56px 28px;
+          padding: 64px 28px;
         }
+        .problem { background: var(--cream); max-width: 100%; }
+        .problem > * { max-width: 680px; margin-left: auto; margin-right: auto; }
         section h2 {
-          font-family: Georgia, serif;
-          font-size: 24px;
+          font-family: 'Fraunces', serif;
+          font-weight: 600;
+          font-size: 26px;
           margin: 0 0 12px;
+          color: var(--navy);
         }
         .section-sub {
-          color: var(--ink-soft);
-          margin-bottom: 20px;
+          color: var(--brown);
+          margin-bottom: 24px;
+          font-size: 15px;
         }
         .problem ul {
-          padding-left: 20px;
-          line-height: 1.8;
-          color: var(--ink-soft);
+          list-style: none;
+          padding: 0;
+          margin: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 14px;
+        }
+        .problem li {
+          background: var(--white);
+          border-left: 3px solid var(--gold);
+          padding: 14px 18px;
+          border-radius: 8px;
+          color: var(--ink);
+          font-size: 14px;
+          line-height: 1.6;
         }
 
         .steps {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-          gap: 16px;
-          margin-top: 24px;
+          grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+          gap: 18px;
+          margin-top: 28px;
         }
         .step {
           border-radius: 16px;
-          padding: 20px;
-          border: 1px solid var(--line);
+          padding: 24px;
+          background: var(--white);
+          border: 1px solid #EFE8D8;
+          transition: transform 0.3s ease, box-shadow 0.3s ease;
         }
-        .step-scan { background: var(--scan-bg); border-color: var(--scan-bd); }
-        .step-workflow { background: var(--workflow-bg); border-color: var(--workflow-bd); }
-        .step-brand { background: var(--brand-bg); border-color: var(--brand-bd); }
+        .step:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 12px 24px rgba(51,86,170,0.1);
+        }
         .step-number {
-          display: inline-block;
-          width: 24px;
-          height: 24px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 28px;
+          height: 28px;
           border-radius: 50%;
-          background: rgba(0,0,0,0.08);
-          text-align: center;
-          line-height: 24px;
-          font-size: 12px;
-          font-weight: 700;
-          margin-bottom: 10px;
+          background: var(--navy);
+          color: var(--cream);
+          font-family: 'Fraunces', serif;
+          font-size: 13px;
+          font-weight: 600;
+          margin-bottom: 14px;
         }
         .step h3 {
           font-size: 15px;
-          margin: 0 0 6px;
+          font-weight: 600;
+          margin: 0 0 8px;
+          color: var(--navy);
         }
         .step p {
           font-size: 13px;
-          color: var(--ink-soft);
+          color: var(--brown);
           margin: 0;
+          line-height: 1.6;
         }
 
         .pricing p {
           font-size: 15px;
-          line-height: 1.7;
-          color: var(--ink-soft);
+          line-height: 1.75;
+          color: var(--brown);
+        }
+        .pricing strong {
+          color: var(--navy);
         }
 
         .final-cta {
-          background: var(--bg-page);
-          color: #f4f3ee;
+          background: var(--gold);
           text-align: center;
-          padding: 64px 28px;
+          padding: 72px 28px;
         }
         .final-cta h2 {
-          font-family: Georgia, serif;
-          font-size: 26px;
-          margin: 0 0 24px;
-          color: #f4f3ee;
+          color: var(--navy);
+          margin-bottom: 28px;
         }
 
         .footer {
           text-align: center;
-          padding: 24px;
+          padding: 28px;
           font-size: 12px;
-          color: var(--ink-faint);
+          color: var(--brown);
+          background: var(--white);
         }
         .footer a {
-          color: var(--ink-faint);
+          color: var(--navy);
+          font-weight: 500;
         }
       `}</style>
     </div>
