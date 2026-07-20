@@ -78,7 +78,7 @@ export default async function BrandDetailPage({ params }) {
 
       <style>{`
         .not-found { padding: 32px; }
-        .brand-detail { padding: 32px; max-width: 900px; margin: 0 auto; }
+        .brand-detail { padding: 32px; max-width: 1100px; margin: 0 auto; }
         .back-link { font-size: 13px; color: var(--brown); text-decoration: none; }
         .back-link:hover { color: var(--navy); }
 
