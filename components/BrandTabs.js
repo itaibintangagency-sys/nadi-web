@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 
 const PAGE_SIZE_OPTIONS = [10, 30, 50, 100, 300, 500];
 
@@ -23,7 +23,7 @@ export default function BrandTabs({ digest, posts, comments }) {
 
       <div className="tab-content">
         {active === 'insight' && <InsightTab digest={digest} />}
-        {active === 'video' && <VideoTable posts={posts} />}
+        {active === 'video' && <VideoTable posts={posts} comments={comments} />}
         {active === 'komentar' && <KomentarTable comments={comments} />}
       </div>
 
@@ -83,7 +83,7 @@ function InsightTab({ digest }) {
   );
 }
 
-// ── Bar chart: top 10 creator by total views ────────────────────────────
+// ── Line chart: top 10 creator by total views, animated draw-in ─────────
 function TopCreatorChart({ posts }) {
   const data = useMemo(() => {
     const byCreator = {};
@@ -99,26 +99,51 @@ function TopCreatorChart({ posts }) {
 
   if (data.length === 0) return null;
 
+  const W = 640;
+  const H = 260;
+  const padLeft = 56;
+  const padRight = 20;
+  const padTop = 16;
+  const padBottom = 36;
+  const plotW = W - padLeft - padRight;
+  const plotH = H - padTop - padBottom;
   const max = Math.max(...data.map((d) => d.views), 1);
-  const barWidth = 100 / data.length;
+
+  const points = data.map((d, i) => {
+    const x = padLeft + (data.length === 1 ? plotW / 2 : (i * plotW) / (data.length - 1));
+    const y = padTop + plotH - (d.views / max) * plotH;
+    return { ...d, x, y };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  const gridLines = [0, 0.25, 0.5, 0.75, 1];
 
   return (
     <div className="chart-card">
       <h3>Top 10 Creator berdasarkan Views</h3>
-      <svg viewBox="0 0 600 220" className="chart-svg" preserveAspectRatio="none">
-        {data.map((d, i) => {
-          const h = (d.views / max) * 160;
-          const x = i * (600 / data.length) + 8;
-          const w = 600 / data.length - 16;
+      <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg">
+        {gridLines.map((f) => {
+          const y = padTop + plotH * (1 - f);
           return (
-            <g key={d.creator}>
-              <rect x={x} y={180 - h} width={w} height={h} rx="4" className="bar" />
-              <text x={x + w / 2} y={196} textAnchor="middle" className="bar-label">
-                {truncate(d.creator, 8)}
+            <g key={f}>
+              <line x1={padLeft} x2={W - padRight} y1={y} y2={y} className="grid-line" />
+              <text x={padLeft - 10} y={y + 4} textAnchor="end" className="axis-label">
+                {formatNum(Math.round(max * f))}
               </text>
             </g>
           );
         })}
+
+        <path d={linePath} className="line-path" />
+
+        {points.map((p) => (
+          <g key={p.creator}>
+            <circle cx={p.x} cy={p.y} r="4" className="dot" />
+            <text x={p.x} y={H - 10} textAnchor="middle" className="x-label">
+              {truncate(p.creator, 8)}
+            </text>
+          </g>
+        ))}
       </svg>
       <style jsx>{`
         .chart-card {
@@ -129,10 +154,37 @@ function TopCreatorChart({ posts }) {
           margin-bottom: 28px;
         }
         h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy); margin: 0 0 12px; }
-        .chart-svg { width: 100%; height: 200px; }
-        :global(.bar) { fill: var(--gold); transition: fill 0.2s ease; }
-        :global(.bar:hover) { fill: var(--navy); }
-        :global(.bar-label) { font-size: 9px; fill: var(--brown); }
+        .chart-svg { width: 100%; height: 240px; display: block; }
+        :global(.grid-line) { stroke: var(--line); stroke-width: 1; }
+        :global(.axis-label) { font-size: 10px; fill: var(--brown); }
+        :global(.x-label) { font-size: 9px; fill: var(--brown); }
+        :global(.line-path) {
+          fill: none;
+          stroke: var(--navy);
+          stroke-width: 2.5;
+          stroke-linecap: round;
+          stroke-linejoin: round;
+          stroke-dasharray: 2000;
+          stroke-dashoffset: 2000;
+          animation: draw 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+        :global(.dot) {
+          fill: var(--gold);
+          stroke: var(--white);
+          stroke-width: 1.5;
+          opacity: 0;
+          animation: dot-in 0.4s ease forwards 1.2s;
+        }
+        @keyframes draw {
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes dot-in {
+          to { opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          :global(.line-path) { animation: none; stroke-dashoffset: 0; }
+          :global(.dot) { animation: none; opacity: 1; }
+        }
       `}</style>
     </div>
   );
@@ -269,7 +321,6 @@ function downloadCsv(filename, rows, headers) {
   URL.revokeObjectURL(url);
 }
 
-// Rekonstruksi link video dari platform + author + post_id — tidak butuh kolom URL baru
 function buildVideoLink(platform, author, postId) {
   if (!postId) return null;
   if (platform === 'tiktok' && author) return `https://www.tiktok.com/@${author}/video/${postId}`;
@@ -279,10 +330,11 @@ function buildVideoLink(platform, author, postId) {
 }
 
 // ── Video Tab ────────────────────────────────────────────────────────────
-function VideoTable({ posts }) {
+function VideoTable({ posts, comments }) {
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
+  const [expandedId, setExpandedId] = useState(null);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -348,6 +400,18 @@ function VideoTable({ posts }) {
 
       <div className="table-scroll">
         <table>
+          <colgroup>
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '28%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '8%' }} />
+            <col style={{ width: '7%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Creator</th>
@@ -365,31 +429,68 @@ function VideoTable({ posts }) {
           <tbody>
             {pageRows.map((p) => {
               const link = buildVideoLink(p.platform, p.author, p.post_id);
+              const linkedComments = comments.filter((c) => c.post_ref === p.id);
+              const isExpanded = expandedId === p.id;
+
               return (
-                <tr key={p.id}>
-                  <td className="creator-cell">{p.author || '—'}</td>
-                  <td className="caption-cell" title={p.caption}>
-                    {p.caption || '(tanpa caption)'}
-                  </td>
-                  <td>
-                    <span className="platform-tag">{p.platform}</span>
-                  </td>
-                  <td>{formatNum(p.views)}</td>
-                  <td>{formatNum(p.likes)}</td>
-                  <td>{formatNum(p.comments_count)}</td>
-                  <td>{formatNum(p.shares)}</td>
-                  <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
-                  <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
-                  <td>
-                    {link ? (
-                      <a href={link} target="_blank" rel="noopener noreferrer" className="link-btn">
-                        Lihat ↗
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
+                <Fragment key={p.id}>
+                  <tr
+                    className={`data-row ${isExpanded ? 'expanded' : ''}`}
+                    onClick={() => setExpandedId(isExpanded ? null : p.id)}
+                  >
+                    <td className="creator-cell">{p.author || '—'}</td>
+                    <td className="caption-cell" title={p.caption}>
+                      {p.caption || '(tanpa caption)'}
+                    </td>
+                    <td>
+                      <span className="platform-tag">{p.platform}</span>
+                    </td>
+                    <td>{formatNum(p.views)}</td>
+                    <td>{formatNum(p.likes)}</td>
+                    <td>{formatNum(p.comments_count)}</td>
+                    <td>{formatNum(p.shares)}</td>
+                    <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
+                    <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
+                    <td>
+                      {link ? (
+                        <a
+                          href={link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link-btn"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          Lihat ↗
+                        </a>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                  </tr>
+                  {isExpanded && (
+                    <tr className="detail-row">
+                      <td colSpan={10}>
+                        <div className="detail-panel">
+                          <p className="detail-title">
+                            Komentar untuk video ini {linkedComments.length > 0 && `(${linkedComments.length})`}
+                          </p>
+                          {linkedComments.length === 0 ? (
+                            <p className="detail-empty">Belum ada komentar yang tertaut ke video ini.</p>
+                          ) : (
+                            <div className="detail-comments">
+                              {linkedComments.map((c) => (
+                                <div key={c.id} className="detail-comment">
+                                  <span className="detail-comment-author">@{c.author || 'unknown'}</span>
+                                  <span className="detail-comment-content">{c.content}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
               );
             })}
           </tbody>
@@ -461,6 +562,13 @@ function KomentarTable({ comments }) {
 
       <div className="table-scroll">
         <table>
+          <colgroup>
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '52%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '9%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th>Creator</th>
@@ -472,7 +580,7 @@ function KomentarTable({ comments }) {
           </thead>
           <tbody>
             {pageRows.map((c) => (
-              <tr key={c.id}>
+              <tr key={c.id} className="data-row">
                 <td className="creator-cell">{c.author || '—'}</td>
                 <td className="caption-cell" title={c.content}>
                   {c.content}
@@ -506,36 +614,39 @@ function TableStyles() {
       table {
         width: 100%;
         border-collapse: collapse;
+        table-layout: fixed;
         font-size: 13px;
-        min-width: 720px;
+        min-width: 760px;
       }
       th {
         text-align: left;
-        padding: 12px 16px;
-        background: var(--cream);
-        color: var(--brown);
-        font-size: 11px;
+        padding: 12px 14px;
+        background: var(--navy);
+        color: var(--cream);
+        font-size: 10.5px;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         font-weight: 700;
-        white-space: nowrap;
-        position: sticky;
-        top: 0;
       }
       td {
         text-align: left;
-        padding: 14px 16px;
+        padding: 12px 14px;
         border-bottom: 1px solid var(--line);
-        vertical-align: top;
-        line-height: 1.6;
+        vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
-      tbody tr:hover { background: #FCFAF3; }
+      .data-row { cursor: pointer; transition: background 0.15s ease; }
+      .data-row:hover { background: #FCFAF3; }
+      .data-row.expanded { background: var(--cream); }
       tbody tr:last-child td { border-bottom: none; }
-      .creator-cell { color: var(--navy); font-weight: 600; white-space: nowrap; }
+      .creator-cell { color: var(--navy); font-weight: 600; }
       .caption-cell {
-        max-width: 300px;
-        min-width: 200px;
         color: var(--ink);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
       }
       .platform-tag {
         font-size: 10px;
@@ -545,12 +656,10 @@ function TableStyles() {
         background: var(--cream);
         padding: 3px 9px;
         border-radius: 999px;
-        white-space: nowrap;
       }
-      .date-cell { color: var(--brown); white-space: nowrap; }
-      .er-high { color: #0F6E5C; font-weight: 700; white-space: nowrap; }
-      .er-mid { color: var(--gold); font-weight: 600; white-space: nowrap; }
-      td:not(.caption-cell) { white-space: nowrap; }
+      .date-cell { color: var(--brown); }
+      .er-high { color: #0F6E5C; font-weight: 700; }
+      .er-mid { color: var(--gold); font-weight: 600; }
       .link-btn {
         color: var(--navy);
         font-weight: 600;
@@ -559,9 +668,28 @@ function TableStyles() {
         border: 1px solid var(--navy);
         padding: 4px 10px;
         border-radius: 999px;
-        white-space: nowrap;
       }
       .link-btn:hover { background: var(--navy); color: var(--white); }
+
+      .detail-row td {
+        white-space: normal;
+        background: var(--cream);
+        padding: 0;
+      }
+      .detail-panel { padding: 16px 20px; }
+      .detail-title { font-size: 12px; font-weight: 700; color: var(--navy); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
+      .detail-empty { font-size: 13px; color: var(--brown); margin: 0; }
+      .detail-comments { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
+      .detail-comment {
+        background: var(--white);
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+      }
+      .detail-comment-author { font-size: 11px; font-weight: 700; color: var(--navy); }
+      .detail-comment-content { font-size: 13px; color: var(--ink); white-space: normal; }
     `}</style>
   );
 }
