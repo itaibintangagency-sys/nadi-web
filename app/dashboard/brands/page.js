@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase-server';
+import Reveal from '@/components/Reveal';
 
 export const dynamic = 'force-dynamic';
 
@@ -53,33 +54,35 @@ export default async function BrandsPage() {
       )}
 
       <div className="grid">
-        {brands?.map((b) => (
-          <Link href={`/dashboard/brands/${b.id}`} key={b.id} className="brand-card">
-            <div className="card-top">
-              <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
-                {statusLabel[b.status] ?? b.status}
-              </span>
-            </div>
-            <h2>{b.name}</h2>
-            <p className="client-name">{b.client_name}</p>
-
-            {b.platforms?.length > 0 && (
-              <div className="platform-tags">
-                {b.platforms.map((p) => (
-                  <span key={p} className="platform-tag">
-                    {p}
-                  </span>
-                ))}
+        {brands?.map((b, i) => (
+          <Reveal delay={i * 70} key={b.id}>
+            <Link href={`/dashboard/brands/${b.id}`} className="brand-card">
+              <div className="card-top">
+                <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
+                  {statusLabel[b.status] ?? b.status}
+                </span>
               </div>
-            )}
+              <h2>{b.name}</h2>
+              <p className="client-name">{b.client_name}</p>
 
-            {b.start_date && (
-              <p className="date-range">
-                {new Date(b.start_date).toLocaleDateString('id-ID')}
-                {b.end_date && ` — ${new Date(b.end_date).toLocaleDateString('id-ID')}`}
-              </p>
-            )}
-          </Link>
+              {b.platforms?.length > 0 && (
+                <div className="platform-tags">
+                  {b.platforms.map((p) => (
+                    <span key={p} className="platform-tag">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {b.start_date && (
+                <p className="date-range">
+                  {new Date(b.start_date).toLocaleDateString('id-ID')}
+                  {b.end_date && ` — ${new Date(b.end_date).toLocaleDateString('id-ID')}`}
+                </p>
+              )}
+            </Link>
+          </Reveal>
         ))}
       </div>
 

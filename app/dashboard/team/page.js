@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import TeamInviteForm from '@/components/TeamInviteForm';
+import Reveal from '@/components/Reveal';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,36 +20,40 @@ export default async function TeamPage() {
       <h1>Tim</h1>
       <p className="sub">Kelola akses Admin & Client. Undangan dikirim via email, tanpa batas jumlah slot.</p>
 
-      <section className="members">
-        <h2>Anggota ({profiles?.length ?? 0})</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Nama</th>
-              <th>Role</th>
-              <th>Bergabung</th>
-            </tr>
-          </thead>
-          <tbody>
-            {profiles?.map((p) => (
-              <tr key={p.id}>
-                <td>{p.full_name ?? '—'}</td>
-                <td>
-                  <span className={`role-badge role-${roleClass[p.role] ?? 'client'}`}>
-                    {roleLabel[p.role] ?? p.role}
-                  </span>
-                </td>
-                <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+      <Reveal>
+        <section className="members">
+          <h2>Anggota ({profiles?.length ?? 0})</h2>
+          <table>
+            <thead>
+              <tr>
+                <th>Nama</th>
+                <th>Role</th>
+                <th>Bergabung</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+            </thead>
+            <tbody>
+              {profiles?.map((p) => (
+                <tr key={p.id}>
+                  <td>{p.full_name ?? '—'}</td>
+                  <td>
+                    <span className={`role-badge role-${roleClass[p.role] ?? 'client'}`}>
+                      {roleLabel[p.role] ?? p.role}
+                    </span>
+                  </td>
+                  <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      </Reveal>
 
-      <section className="invite">
-        <h2>Undang Anggota Baru</h2>
-        <TeamInviteForm brands={brands ?? []} />
-      </section>
+      <Reveal delay={100}>
+        <section className="invite">
+          <h2>Undang Anggota Baru</h2>
+          <TeamInviteForm brands={brands ?? []} />
+        </section>
+      </Reveal>
 
       <style>{`
         .team-page { padding: 32px; max-width: 900px; }

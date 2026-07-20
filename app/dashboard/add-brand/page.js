@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Reveal from '@/components/Reveal';
 
 const PLATFORM_OPTIONS = ['tiktok', 'instagram', 'youtube'];
 
@@ -67,6 +68,7 @@ export default function AddBrandPage() {
 
       <form onSubmit={handleSubmit} className="form-card">
         {/* SECTION 1: Info Brand */}
+        <Reveal>
         <div className="form-section">
           <h2>Informasi Brand</h2>
           <div className="field">
@@ -104,10 +106,12 @@ export default function AddBrandPage() {
             </div>
           </div>
         </div>
+        </Reveal>
 
         <div className="divider" />
 
         {/* SECTION 2: Cakupan Monitoring */}
+        <Reveal delay={80}>
         <div className="form-section">
           <h2>Cakupan Monitoring</h2>
           <div className="field">
@@ -162,10 +166,12 @@ export default function AddBrandPage() {
             )}
           </div>
         </div>
+        </Reveal>
 
         <div className="divider" />
 
         {/* SECTION 3: Keyword */}
+        <Reveal delay={160}>
         <div className="form-section">
           <h2>Keyword Pemantauan</h2>
           <div className="field">
@@ -183,6 +189,7 @@ export default function AddBrandPage() {
             </p>
           </div>
         </div>
+        </Reveal>
 
         {error && <p className="error-text">{error}</p>}
 

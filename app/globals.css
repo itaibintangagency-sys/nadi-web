@@ -60,6 +60,12 @@ a {
 
 html {
   color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+a {
+  color: var(--navy);
+  transition: color 0.2s ease, opacity 0.2s ease;
 }
 
 .input-field {
@@ -70,7 +76,27 @@ html {
   font-family: inherit;
   background: var(--white);
   color: var(--ink);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .input-field::placeholder {
   color: #B0A78E;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--navy);
+  box-shadow: 0 0 0 3px rgba(51, 86, 170, 0.12);
+}
+
+button {
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  * {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
 }
