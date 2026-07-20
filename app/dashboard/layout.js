@@ -11,13 +11,13 @@ export default async function DashboardLayout({ children }) {
 
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role')
+    .select('role, full_name')
     .eq('id', user?.id)
     .single();
 
   return (
     <div className="dashboard-shell">
-      <DashboardNav role={profile?.role ?? 'client'} email={user?.email ?? ''} />
+      <DashboardNav role={profile?.role ?? 'client'} email={user?.email ?? ''} fullName={profile?.full_name} />
       <main>{children}</main>
     </div>
   );
