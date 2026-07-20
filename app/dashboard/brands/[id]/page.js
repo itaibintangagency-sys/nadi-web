@@ -15,7 +15,7 @@ export default async function BrandDetailPage({ params }) {
   const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }] = await Promise.all([
     supabase.from('brands').select('*').eq('id', id).single(),
     supabase.from('raw_posts').select('*').eq('brand_id', id).order('posted_at', { ascending: false }),
-    supabase.from('raw_comments').select('*').eq('brand_id', id).order('commented_at', { ascending: false }).limit(50),
+    supabase.from('raw_comments').select('*').eq('brand_id', id).order('commented_at', { ascending: false }).limit(500),
     supabase.from('daily_digests').select('*').eq('brand_id', id).order('digest_date', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
