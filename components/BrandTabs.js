@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 const PAGE_SIZE_OPTIONS = [10, 30, 50, 100, 300, 500];
 
@@ -83,110 +83,32 @@ function InsightTab({ digest }) {
   );
 }
 
-// ── Line chart: top 10 creator by total views, animated draw-in ─────────
-function TopCreatorChart({ posts }) {
-  const data = useMemo(() => {
-    const byCreator = {};
-    posts.forEach((p) => {
-      const key = p.author || 'unknown';
-      byCreator[key] = (byCreator[key] || 0) + (p.views || 0);
-    });
-    return Object.entries(byCreator)
-      .map(([creator, views]) => ({ creator, views }))
-      .sort((a, b) => b.views - a.views)
-      .slice(0, 10);
-  }, [posts]);
-
-  if (data.length === 0) return null;
-
-  const W = 640;
-  const H = 260;
-  const padLeft = 56;
-  const padRight = 20;
-  const padTop = 16;
-  const padBottom = 36;
-  const plotW = W - padLeft - padRight;
-  const plotH = H - padTop - padBottom;
-  const max = Math.max(...data.map((d) => d.views), 1);
-
-  const points = data.map((d, i) => {
-    const x = padLeft + (data.length === 1 ? plotW / 2 : (i * plotW) / (data.length - 1));
-    const y = padTop + plotH - (d.views / max) * plotH;
-    return { ...d, x, y };
+// ── Sort helper ──────────────────────────────────────────────────────────
+function sortData(data, sortKey, sortDir) {
+  if (!sortKey) return data;
+  return [...data].sort((a, b) => {
+    let av = a[sortKey];
+    let bv = b[sortKey];
+    if (typeof av === 'string' || typeof bv === 'string') {
+      av = (av ?? '').toString().toLowerCase();
+      bv = (bv ?? '').toString().toLowerCase();
+    } else {
+      av = av ?? 0;
+      bv = bv ?? 0;
+    }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return sortDir === 'asc' ? 1 : -1;
+    return 0;
   });
+}
 
-  const linePath = points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
-  const gridLines = [0, 0.25, 0.5, 0.75, 1];
-
+function SortableTh({ label, sortKey, sort, setSort }) {
+  const isActive = sort.key === sortKey;
   return (
-    <div className="chart-card">
-      <h3>Top 10 Creator berdasarkan Views</h3>
-      <svg viewBox={`0 0 ${W} ${H}`} className="chart-svg">
-        {gridLines.map((f) => {
-          const y = padTop + plotH * (1 - f);
-          return (
-            <g key={f}>
-              <line x1={padLeft} x2={W - padRight} y1={y} y2={y} className="grid-line" />
-              <text x={padLeft - 10} y={y + 4} textAnchor="end" className="axis-label">
-                {formatNum(Math.round(max * f))}
-              </text>
-            </g>
-          );
-        })}
-
-        <path d={linePath} className="line-path" />
-
-        {points.map((p) => (
-          <g key={p.creator}>
-            <circle cx={p.x} cy={p.y} r="4" className="dot" />
-            <text x={p.x} y={H - 10} textAnchor="middle" className="x-label">
-              {truncate(p.creator, 8)}
-            </text>
-          </g>
-        ))}
-      </svg>
-      <style jsx>{`
-        .chart-card {
-          background: var(--white);
-          border: 1px solid var(--line);
-          border-radius: 16px;
-          padding: 20px 20px 8px;
-          margin-bottom: 28px;
-        }
-        h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy); margin: 0 0 12px; }
-        .chart-svg { width: 100%; height: 240px; display: block; }
-        :global(.grid-line) { stroke: var(--line); stroke-width: 1; }
-        :global(.axis-label) { font-size: 10px; fill: var(--brown); }
-        :global(.x-label) { font-size: 9px; fill: var(--brown); }
-        :global(.line-path) {
-          fill: none;
-          stroke: var(--navy);
-          stroke-width: 2.5;
-          stroke-linecap: round;
-          stroke-linejoin: round;
-          stroke-dasharray: 2000;
-          stroke-dashoffset: 2000;
-          animation: draw 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-        :global(.dot) {
-          fill: var(--gold);
-          stroke: var(--white);
-          stroke-width: 1.5;
-          opacity: 0;
-          animation: dot-in 0.4s ease forwards 1.2s;
-        }
-        @keyframes draw {
-          to { stroke-dashoffset: 0; }
-        }
-        @keyframes dot-in {
-          to { opacity: 1; }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          :global(.line-path) { animation: none; stroke-dashoffset: 0; }
-          :global(.dot) { animation: none; opacity: 1; }
-        }
-      `}</style>
-    </div>
+    <th onClick={() => setSort(sortKey)} className={isActive ? 'active-sort' : ''}>
+      {label}
+      <span className="sort-arrow">{isActive ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}</span>
+    </th>
   );
 }
 
@@ -329,18 +251,203 @@ function buildVideoLink(platform, author, postId) {
   return null;
 }
 
+// ── Side detail panel ────────────────────────────────────────────────────
+function DetailPanel({ post, linkedComments, onClose }) {
+  if (!post) return null;
+  const link = buildVideoLink(post.platform, post.author, post.post_id);
+
+  return (
+    <>
+      <div className="backdrop" onClick={onClose} />
+      <div className="panel">
+        <div className="panel-header">
+          <div>
+            <span className="platform-tag">{post.platform}</span>
+            <p className="panel-author">@{post.author || 'unknown'}</p>
+          </div>
+          <button onClick={onClose} className="close-btn" aria-label="Tutup">
+            ×
+          </button>
+        </div>
+
+        <p className="panel-caption">{post.caption || '(tanpa caption)'}</p>
+
+        <div className="panel-stats">
+          <div>
+            <span className="stat-label">Views</span>
+            <span className="stat-value">{formatNum(post.views)}</span>
+          </div>
+          <div>
+            <span className="stat-label">Likes</span>
+            <span className="stat-value">{formatNum(post.likes)}</span>
+          </div>
+          <div>
+            <span className="stat-label">Comments</span>
+            <span className="stat-value">{formatNum(post.comments_count)}</span>
+          </div>
+          <div>
+            <span className="stat-label">ER</span>
+            <span className="stat-value">{(post.engagement_rate ?? 0).toFixed(2)}%</span>
+          </div>
+        </div>
+
+        {link && (
+          <a href={link} target="_blank" rel="noopener noreferrer" className="panel-link">
+            Buka video asli ↗
+          </a>
+        )}
+
+        <div className="panel-divider" />
+
+        <p className="panel-section-title">
+          Komentar {linkedComments.length > 0 && `(${linkedComments.length})`}
+        </p>
+
+        {linkedComments.length === 0 ? (
+          <p className="panel-empty">Belum ada komentar tersimpan untuk video ini.</p>
+        ) : (
+          <div className="panel-comments">
+            {linkedComments.map((c) => (
+              <div key={c.id} className="panel-comment">
+                <span className="comment-author">@{c.author || 'unknown'}</span>
+                <span className="comment-content">{c.content}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        .backdrop {
+          position: fixed;
+          inset: 0;
+          background: transparent;
+          z-index: 40;
+        }
+        .panel {
+          position: fixed;
+          top: 0;
+          right: 0;
+          height: 100vh;
+          width: 380px;
+          max-width: 92vw;
+          background: var(--white);
+          border-left: 1px solid var(--line);
+          box-shadow: -12px 0 32px rgba(42, 38, 32, 0.12);
+          z-index: 50;
+          padding: 24px;
+          overflow-y: auto;
+          animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes slideIn {
+          from { transform: translateX(100%); }
+          to { transform: translateX(0); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .panel { animation: none; }
+        }
+
+        .panel-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          margin-bottom: 14px;
+        }
+        .platform-tag {
+          font-size: 10px;
+          text-transform: uppercase;
+          font-weight: 700;
+          color: var(--brown);
+          background: var(--cream);
+          padding: 3px 9px;
+          border-radius: 999px;
+        }
+        .panel-author { font-size: 15px; font-weight: 700; color: var(--navy); margin: 6px 0 0; }
+        .close-btn {
+          background: transparent;
+          border: none;
+          font-size: 22px;
+          line-height: 1;
+          color: var(--brown);
+          cursor: pointer;
+          padding: 0;
+        }
+        .close-btn:hover { color: var(--navy); }
+
+        .panel-caption { font-size: 14px; color: var(--ink); line-height: 1.6; margin: 0 0 20px; }
+
+        .panel-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 8px;
+          margin-bottom: 16px;
+        }
+        .panel-stats > div {
+          background: var(--cream);
+          border-radius: 10px;
+          padding: 8px 6px;
+          text-align: center;
+        }
+        .stat-label { display: block; font-size: 9px; text-transform: uppercase; color: var(--brown); margin-bottom: 2px; }
+        .stat-value { display: block; font-size: 13px; font-weight: 700; color: var(--navy); }
+
+        .panel-link {
+          display: block;
+          text-align: center;
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--navy);
+          border: 1px solid var(--navy);
+          border-radius: 8px;
+          padding: 8px;
+          text-decoration: none;
+          margin-bottom: 20px;
+        }
+        .panel-link:hover { background: var(--navy); color: var(--white); }
+
+        .panel-divider { height: 1px; background: var(--line); margin-bottom: 16px; }
+
+        .panel-section-title {
+          font-size: 11px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          font-weight: 700;
+          color: var(--navy);
+          margin: 0 0 12px;
+        }
+        .panel-empty { font-size: 13px; color: var(--brown); }
+        .panel-comments { display: flex; flex-direction: column; gap: 10px; }
+        .panel-comment {
+          background: var(--cream);
+          border-radius: 8px;
+          padding: 10px 12px;
+        }
+        .comment-author { display: block; font-size: 11px; font-weight: 700; color: var(--navy); margin-bottom: 3px; }
+        .comment-content { display: block; font-size: 13px; color: var(--ink); line-height: 1.5; }
+      `}</style>
+    </>
+  );
+}
+
 // ── Video Tab ────────────────────────────────────────────────────────────
 function VideoTable({ posts, comments }) {
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
-  const [expandedId, setExpandedId] = useState(null);
+  const [sort, setSortState] = useState({ key: 'views', dir: 'desc' });
+  const [selectedPost, setSelectedPost] = useState(null);
+
+  function setSort(key) {
+    setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return posts;
-    return posts.filter((p) => (p.caption ?? '').toLowerCase().includes(q) || (p.author ?? '').toLowerCase().includes(q));
-  }, [posts, search]);
+    const base = q
+      ? posts.filter((p) => (p.caption ?? '').toLowerCase().includes(q) || (p.author ?? '').toLowerCase().includes(q))
+      : posts;
+    return sortData(base, sort.key, sort.dir);
+  }, [posts, search, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -379,10 +486,10 @@ function VideoTable({ posts, comments }) {
     return <EmptyState text="Belum ada video yang terkumpul untuk brand ini." />;
   }
 
+  const linkedComments = selectedPost ? comments.filter((c) => c.post_ref === selectedPost.id) : [];
+
   return (
     <div className="video-table">
-      <TopCreatorChart posts={posts} />
-
       <TableControls
         search={search}
         setSearch={(v) => {
@@ -402,102 +509,56 @@ function VideoTable({ posts, comments }) {
         <table>
           <colgroup>
             <col style={{ width: '13%' }} />
-            <col style={{ width: '28%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '8%' }} />
+            <col style={{ width: '20%' }} />
             <col style={{ width: '8%' }} />
             <col style={{ width: '9%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '7%' }} />
+            <col style={{ width: '9%' }} />
+            <col style={{ width: '10%' }} />
             <col style={{ width: '8%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '9%' }} />
             <col style={{ width: '7%' }} />
           </colgroup>
           <thead>
             <tr>
-              <th>Creator</th>
+              <SortableTh label="Creator" sortKey="author" sort={sort} setSort={setSort} />
               <th>Caption</th>
-              <th>Platform</th>
-              <th>Views</th>
-              <th>Likes</th>
-              <th>Comments</th>
-              <th>Shares</th>
-              <th>ER</th>
-              <th>Tanggal</th>
-              <th>Link</th>
+              <SortableTh label="Platform" sortKey="platform" sort={sort} setSort={setSort} />
+              <SortableTh label="Views" sortKey="views" sort={sort} setSort={setSort} />
+              <SortableTh label="Likes" sortKey="likes" sort={sort} setSort={setSort} />
+              <SortableTh label="Comments" sortKey="comments_count" sort={sort} setSort={setSort} />
+              <SortableTh label="Shares" sortKey="shares" sort={sort} setSort={setSort} />
+              <SortableTh label="ER" sortKey="engagement_rate" sort={sort} setSort={setSort} />
+              <SortableTh label="Tanggal" sortKey="posted_at" sort={sort} setSort={setSort} />
+              <th>Detail</th>
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((p) => {
-              const link = buildVideoLink(p.platform, p.author, p.post_id);
-              const linkedComments = comments.filter((c) => c.post_ref === p.id);
-              const isExpanded = expandedId === p.id;
-
-              return (
-                <Fragment key={p.id}>
-                  <tr
-                    className={`data-row ${isExpanded ? 'expanded' : ''}`}
-                    onClick={() => setExpandedId(isExpanded ? null : p.id)}
-                  >
-                    <td className="creator-cell">{p.author || '—'}</td>
-                    <td className="caption-cell" title={p.caption}>
-                      {p.caption || '(tanpa caption)'}
-                    </td>
-                    <td>
-                      <span className="platform-tag">{p.platform}</span>
-                    </td>
-                    <td>{formatNum(p.views)}</td>
-                    <td>{formatNum(p.likes)}</td>
-                    <td>{formatNum(p.comments_count)}</td>
-                    <td>{formatNum(p.shares)}</td>
-                    <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
-                    <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
-                    <td>
-                      {link ? (
-                        <a
-                          href={link}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="link-btn"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Lihat ↗
-                        </a>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  </tr>
-                  {isExpanded && (
-                    <tr className="detail-row">
-                      <td colSpan={10}>
-                        <div className="detail-panel">
-                          <p className="detail-title">
-                            Komentar untuk video ini {linkedComments.length > 0 && `(${linkedComments.length})`}
-                          </p>
-                          {linkedComments.length === 0 ? (
-                            <p className="detail-empty">Belum ada komentar yang tertaut ke video ini.</p>
-                          ) : (
-                            <div className="detail-comments">
-                              {linkedComments.map((c) => (
-                                <div key={c.id} className="detail-comment">
-                                  <span className="detail-comment-author">@{c.author || 'unknown'}</span>
-                                  <span className="detail-comment-content">{c.content}</span>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </Fragment>
-              );
-            })}
+            {pageRows.map((p) => (
+              <tr key={p.id} className="data-row" onClick={() => setSelectedPost(p)}>
+                <td className="creator-cell">{p.author || '—'}</td>
+                <td className="caption-cell">{truncate(p.caption || '(tanpa caption)', 40)}</td>
+                <td>
+                  <span className="platform-tag">{p.platform}</span>
+                </td>
+                <td>{formatNum(p.views)}</td>
+                <td>{formatNum(p.likes)}</td>
+                <td>{formatNum(p.comments_count)}</td>
+                <td>{formatNum(p.shares)}</td>
+                <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
+                <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
+                <td>
+                  <span className="detail-btn">Lihat →</span>
+                </td>
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>
 
       <Pagination page={page} totalPages={totalPages} setPage={setPage} totalRows={filtered.length} pageSize={pageSize} />
+
+      <DetailPanel post={selectedPost} linkedComments={linkedComments} onClose={() => setSelectedPost(null)} />
 
       <TableStyles />
     </div>
@@ -509,12 +570,19 @@ function KomentarTable({ comments }) {
   const [search, setSearch] = useState('');
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
+  const [sort, setSortState] = useState({ key: 'commented_at', dir: 'desc' });
+
+  function setSort(key) {
+    setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return comments;
-    return comments.filter((c) => (c.content ?? '').toLowerCase().includes(q) || (c.author ?? '').toLowerCase().includes(q));
-  }, [comments, search]);
+    const base = q
+      ? comments.filter((c) => (c.content ?? '').toLowerCase().includes(q) || (c.author ?? '').toLowerCase().includes(q))
+      : comments;
+    return sortData(base, sort.key, sort.dir);
+  }, [comments, search, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -563,28 +631,26 @@ function KomentarTable({ comments }) {
       <div className="table-scroll">
         <table>
           <colgroup>
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '52%' }} />
+            <col style={{ width: '16%' }} />
+            <col style={{ width: '48%' }} />
             <col style={{ width: '12%' }} />
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '9%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '12%' }} />
           </colgroup>
           <thead>
             <tr>
-              <th>Creator</th>
+              <SortableTh label="Creator" sortKey="author" sort={sort} setSort={setSort} />
               <th>Komentar</th>
-              <th>Platform</th>
-              <th>Likes</th>
-              <th>Tanggal</th>
+              <SortableTh label="Platform" sortKey="platform" sort={sort} setSort={setSort} />
+              <SortableTh label="Likes" sortKey="like_count" sort={sort} setSort={setSort} />
+              <SortableTh label="Tanggal" sortKey="commented_at" sort={sort} setSort={setSort} />
             </tr>
           </thead>
           <tbody>
             {pageRows.map((c) => (
-              <tr key={c.id} className="data-row">
+              <tr key={c.id} className="data-row-static">
                 <td className="creator-cell">{c.author || '—'}</td>
-                <td className="caption-cell" title={c.content}>
-                  {c.content}
-                </td>
+                <td className="caption-cell">{truncate(c.content || '', 60)}</td>
                 <td>
                   <span className="platform-tag">{c.platform}</span>
                 </td>
@@ -616,7 +682,7 @@ function TableStyles() {
         border-collapse: collapse;
         table-layout: fixed;
         font-size: 13px;
-        min-width: 760px;
+        min-width: 780px;
       }
       th {
         text-align: left;
@@ -627,27 +693,26 @@ function TableStyles() {
         text-transform: uppercase;
         letter-spacing: 0.04em;
         font-weight: 700;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
       }
+      th.active-sort { color: var(--gold); }
+      .sort-arrow { font-size: 9px; }
       td {
         text-align: left;
         padding: 12px 14px;
         border-bottom: 1px solid var(--line);
         vertical-align: middle;
         overflow: hidden;
-        text-overflow: ellipsis;
         white-space: nowrap;
       }
       .data-row { cursor: pointer; transition: background 0.15s ease; }
-      .data-row:hover { background: #FCFAF3; }
-      .data-row.expanded { background: var(--cream); }
+      .data-row:hover { background: var(--cream); }
+      .data-row-static:hover { background: #FCFAF3; }
       tbody tr:last-child td { border-bottom: none; }
       .creator-cell { color: var(--navy); font-weight: 600; }
-      .caption-cell {
-        color: var(--ink);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-      }
+      .caption-cell { color: var(--ink); }
       .platform-tag {
         font-size: 10px;
         text-transform: uppercase;
@@ -660,36 +725,8 @@ function TableStyles() {
       .date-cell { color: var(--brown); }
       .er-high { color: #0F6E5C; font-weight: 700; }
       .er-mid { color: var(--gold); font-weight: 600; }
-      .link-btn {
-        color: var(--navy);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 12px;
-        border: 1px solid var(--navy);
-        padding: 4px 10px;
-        border-radius: 999px;
-      }
-      .link-btn:hover { background: var(--navy); color: var(--white); }
-
-      .detail-row td {
-        white-space: normal;
-        background: var(--cream);
-        padding: 0;
-      }
-      .detail-panel { padding: 16px 20px; }
-      .detail-title { font-size: 12px; font-weight: 700; color: var(--navy); margin: 0 0 10px; text-transform: uppercase; letter-spacing: 0.04em; }
-      .detail-empty { font-size: 13px; color: var(--brown); margin: 0; }
-      .detail-comments { display: flex; flex-direction: column; gap: 8px; max-height: 220px; overflow-y: auto; }
-      .detail-comment {
-        background: var(--white);
-        border-radius: 8px;
-        padding: 10px 12px;
-        display: flex;
-        flex-direction: column;
-        gap: 3px;
-      }
-      .detail-comment-author { font-size: 11px; font-weight: 700; color: var(--navy); }
-      .detail-comment-content { font-size: 13px; color: var(--ink); white-space: normal; }
+      .detail-btn { color: var(--navy); font-weight: 600; font-size: 12px; }
+      .data-row:hover .detail-btn { text-decoration: underline; }
     `}</style>
   );
 }
@@ -727,5 +764,6 @@ function formatNum(n) {
 }
 
 function truncate(str, n) {
+  if (!str) return '';
   return str.length > n ? str.slice(0, n) + '…' : str;
 }
