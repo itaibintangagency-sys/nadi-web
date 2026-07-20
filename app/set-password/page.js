@@ -29,38 +29,78 @@ export default function SetPasswordPage() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 8 }}>Selamat datang di BIS</h1>
-      <p style={{ fontSize: 14, color: '#57534e', marginBottom: 24 }}>
-        Buat password untuk akun kamu.
-      </p>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input
-          type="password"
-          placeholder="Password baru (min. 8 karakter)"
-          required
-          minLength={8}
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: 10, border: '1px solid #e7e5e0', borderRadius: 8 }}
-        />
-        {error && <p style={{ color: '#993C1D', fontSize: 13 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            border: 'none',
-            background: '#0F6E5C',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          {loading ? 'Menyimpan...' : 'Simpan & Masuk'}
-        </button>
-      </form>
+    <div className="set-password-page">
+      <div className="card">
+        <p className="eyebrow">Nadi</p>
+        <h1>Selamat datang</h1>
+        <p className="sub">Buat password untuk akun kamu.</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="password"
+            placeholder="Password baru (min. 8 karakter)"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input-field"
+          />
+          {error && <p className="error-text">{error}</p>}
+          <button type="submit" disabled={loading} className="btn-primary submit-btn">
+            {loading ? 'Menyimpan...' : 'Simpan & Masuk'}
+          </button>
+        </form>
+      </div>
+
+      <style>{`
+        .set-password-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--navy);
+          padding: 24px;
+        }
+        .card {
+          background: var(--white);
+          border-radius: 16px;
+          padding: 40px 32px;
+          width: 100%;
+          max-width: 360px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        .eyebrow {
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--gold);
+          font-weight: 700;
+          margin: 0 0 8px;
+        }
+        .card h1 {
+          font-size: 22px;
+          margin: 0 0 6px;
+          color: var(--navy);
+        }
+        .sub {
+          font-size: 14px;
+          color: var(--brown);
+          margin: 0 0 24px;
+        }
+        form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .submit-btn {
+          width: 100%;
+          text-align: center;
+        }
+        .error-text {
+          color: #b3261e;
+          font-size: 13px;
+          margin: 0;
+        }
+      `}</style>
     </div>
   );
 }

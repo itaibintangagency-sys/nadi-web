@@ -30,45 +30,86 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 24 }}>LogIn</h1>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        <input
-          type="email"
-          placeholder="Email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          style={{ padding: 10, border: '1px solid #e7e5e0', borderRadius: 8 }}
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          style={{ padding: 10, border: '1px solid #e7e5e0', borderRadius: 8 }}
-        />
-        {error && <p style={{ color: '#993C1D', fontSize: 13 }}>{error}</p>}
-        <button
-          type="submit"
-          disabled={loading}
-          style={{
-            padding: 10,
-            borderRadius: 8,
-            border: 'none',
-            background: '#0F6E5C',
-            color: '#fff',
-            fontWeight: 600,
-            cursor: 'pointer',
-          }}
-        >
-          {loading ? 'Memproses...' : 'Masuk'}
-        </button>
-      </form>
-      <p style={{ fontSize: 12, color: '#8a8a85', marginTop: 16 }}>
-        Belum punya akun? Hubungi Super Admin untuk diundang.
-      </p>
+    <div className="login-page">
+      <div className="login-card">
+        <p className="eyebrow">Nadi</p>
+        <h1>Masuk</h1>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="email"
+            placeholder="Email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="input-field"
+          />
+          <input
+            type="password"
+            placeholder="Password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="input-field"
+          />
+          {error && <p className="error-text">{error}</p>}
+          <button type="submit" disabled={loading} className="btn-primary submit-btn">
+            {loading ? 'Memproses...' : 'Masuk'}
+          </button>
+        </form>
+        <p className="hint">Belum punya akun? Hubungi Super Admin untuk diundang.</p>
+      </div>
+
+      <style>{`
+        .login-page {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--navy);
+          padding: 24px;
+        }
+        .login-card {
+          background: var(--white);
+          border-radius: 16px;
+          padding: 40px 32px;
+          width: 100%;
+          max-width: 360px;
+          box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+        }
+        .eyebrow {
+          font-size: 11px;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--gold);
+          font-weight: 700;
+          margin: 0 0 8px;
+        }
+        .login-card h1 {
+          font-size: 22px;
+          margin: 0 0 24px;
+          color: var(--navy);
+        }
+        form {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+        }
+        .submit-btn {
+          width: 100%;
+          text-align: center;
+        }
+        .error-text {
+          color: #b3261e;
+          font-size: 13px;
+          margin: 0;
+        }
+        .hint {
+          font-size: 12px;
+          color: var(--brown);
+          margin-top: 20px;
+          text-align: center;
+        }
+      `}</style>
     </div>
   );
 }

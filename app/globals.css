@@ -1,0 +1,67 @@
+/* app/globals.css */
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --navy: #3356AA;
+  --gold: #D1A617;
+  --cream: #FFEFCA;
+  --brown: #857555;
+  --ink: #2A2620;
+  --white: #FFFFFF;
+  --line: #EFE8D8;
+
+  /* Role badge tints — dipakai di halaman Team */
+  --role-super-bg: #E8EDF7; --role-super-bd: #3356AA; --role-super-tx: #223A78;
+  --role-admin-bg: #FBF3DC; --role-admin-bd: #D1A617; --role-admin-tx: #8C6D0A;
+  --role-client-bg: #F1ECE3; --role-client-bd: #857555; --role-client-tx: #5E5239;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--ink);
+  background: var(--white);
+}
+
+h1, h2, h3 {
+  font-family: 'Fraunces', serif;
+}
+
+a {
+  color: var(--navy);
+}
+
+.btn-primary {
+  display: inline-block;
+  padding: 10px 20px;
+  border-radius: 10px;
+  border: none;
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(209, 166, 23, 0.35);
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.input-field {
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 14px;
+  font-family: inherit;
+}

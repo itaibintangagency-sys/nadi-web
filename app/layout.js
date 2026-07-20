@@ -1,5 +1,7 @@
+import './globals.css';
+
 export const metadata = {
-  title: 'BIS — Brand Intelligence System',
+  title: 'Nadi — Brand Intelligence System',
   description: 'Dashboard monitoring & analisis brand',
 };
 

@@ -61,6 +61,7 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           placeholder="nama@perusahaan.com"
+          className="input-field"
         />
       </div>
 
@@ -71,6 +72,7 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
           type="text"
           value={fullName}
           onChange={(e) => setFullName(e.target.value)}
+          className="input-field"
         />
       </div>
 
@@ -113,7 +115,7 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
 
       {message && <p className={`form-message ${message.type}`}>{message.text}</p>}
 
-      <button type="submit" disabled={loading} className="submit-btn">
+      <button type="submit" disabled={loading} className="btn-primary submit-btn">
         {loading ? 'Mengirim undangan...' : 'Kirim Undangan'}
       </button>
 
@@ -132,14 +134,7 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
         label {
           font-size: 13px;
           font-weight: 600;
-          color: var(--ink-soft, #57534e);
-        }
-        input[type='email'],
-        input[type='text'] {
-          padding: 10px 12px;
-          border: 1px solid var(--line, #e7e5e0);
-          border-radius: 10px;
-          font-size: 14px;
+          color: var(--brown);
         }
         .role-toggle {
           display: flex;
@@ -148,16 +143,17 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
         .role-toggle button {
           padding: 8px 16px;
           border-radius: 999px;
-          border: 1px solid var(--role-bd, #b4530a);
-          background: var(--role-bg, #fff4e5);
-          color: var(--role-tx, #7a3806);
+          border: 1px solid var(--navy);
+          background: var(--white);
+          color: var(--navy);
           font-size: 13px;
           font-weight: 500;
           cursor: pointer;
+          transition: background 0.2s ease, color 0.2s ease;
         }
         .role-toggle button.active {
-          background: var(--role-bd, #b4530a);
-          color: #fff;
+          background: var(--navy);
+          color: var(--white);
         }
         .brand-checklist {
           display: flex;
@@ -165,7 +161,7 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
           gap: 6px;
           max-height: 160px;
           overflow-y: auto;
-          border: 1px solid var(--line-soft, #eeece8);
+          border: 1px solid var(--line);
           border-radius: 10px;
           padding: 10px 12px;
         }
@@ -175,11 +171,11 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
           gap: 8px;
           font-size: 13px;
           font-weight: 400;
-          color: var(--ink, #1a1a1a);
+          color: var(--ink);
         }
         .empty-hint {
           font-size: 12px;
-          color: var(--ink-faint, #8a8a85);
+          color: var(--brown);
           margin: 0;
         }
         .form-message {
@@ -187,24 +183,13 @@ export default function TeamInviteForm({ brands = [], onInvited }) {
           margin: 0;
         }
         .form-message.error {
-          color: var(--error-tx, #712b13);
+          color: #b3261e;
         }
         .form-message.success {
-          color: var(--campaign-tx, #085041);
+          color: var(--navy);
         }
         .submit-btn {
-          padding: 10px 16px;
-          border-radius: 10px;
-          border: none;
-          background: var(--accent, #0f6e5c);
-          color: #fff;
-          font-size: 14px;
-          font-weight: 600;
-          cursor: pointer;
-        }
-        .submit-btn:disabled {
-          opacity: 0.6;
-          cursor: not-allowed;
+          width: fit-content;
         }
       `}</style>
     </form>

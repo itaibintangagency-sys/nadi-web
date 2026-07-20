@@ -9,13 +9,16 @@ export default async function BrandsPage() {
   } = await supabase.auth.getUser();
 
   return (
-    <div style={{ padding: 32, fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 24, marginBottom: 8 }}>Brands</h1>
-      <p style={{ color: '#57534e', fontSize: 14 }}>
-        Halo, {user?.email}. Ini home Super Admin — halaman daftar brand lengkap menyusul.
+    <div style={{ padding: 32 }}>
+      <p style={{ fontSize: 11, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--gold)', fontWeight: 700, margin: '0 0 8px' }}>
+        Super Admin
+      </p>
+      <h1 style={{ fontSize: 24, margin: '0 0 8px', color: 'var(--navy)' }}>Brands</h1>
+      <p style={{ color: 'var(--brown)', fontSize: 14 }}>
+        Halo, {user?.email}. Halaman daftar brand lengkap menyusul.
       </p>
       <p style={{ marginTop: 16 }}>
-        <a href="/dashboard/team" style={{ color: '#0F6E5C' }}>
+        <a href="/dashboard/team" style={{ color: 'var(--navy)', fontWeight: 600 }}>
           → Kelola Tim
         </a>
       </p>
