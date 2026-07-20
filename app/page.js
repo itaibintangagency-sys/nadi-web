@@ -180,7 +180,7 @@ export default function LandingPage() {
         .signal-wrap {
           position: relative;
           max-width: 600px;
-          margin: 0 auto 40px;
+          margin: 24px auto 40px;
         }
         .signal-svg {
           width: 100%;
@@ -198,16 +198,13 @@ export default function LandingPage() {
           stroke-width: 2.5;
           stroke-linecap: round;
           stroke-linejoin: round;
-          stroke-dasharray: 900;
-          stroke-dashoffset: 900;
-          animation: draw-signal 2.4s cubic-bezier(0.65, 0, 0.35, 1) forwards, glow-signal 2.5s ease-in-out 2.4s infinite;
+          stroke-dasharray: 70 830;
+          filter: drop-shadow(0 0 3px var(--gold));
+          animation: flow-signal 3s linear infinite;
         }
-        @keyframes draw-signal {
-          to { stroke-dashoffset: 0; }
-        }
-        @keyframes glow-signal {
-          0%, 100% { filter: drop-shadow(0 0 0px var(--gold)); }
-          50% { filter: drop-shadow(0 0 6px var(--gold)); }
+        @keyframes flow-signal {
+          from { stroke-dashoffset: 0; }
+          to { stroke-dashoffset: -900; }
         }
 
         .signal-card {
