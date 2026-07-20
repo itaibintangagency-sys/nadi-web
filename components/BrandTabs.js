@@ -22,7 +22,7 @@ export default function BrandTabs({ digest, posts, comments }) {
       </div>
 
       <div className="tab-content">
-        {active === 'insight' && <InsightTab digest={digest} />}
+        {active === 'insight' && <InsightTab digest={digest} posts={posts} comments={comments} />}
         {active === 'video' && <VideoTable posts={posts} comments={comments} />}
         {active === 'komentar' && <KomentarTable comments={comments} />}
       </div>
@@ -54,30 +54,174 @@ export default function BrandTabs({ digest, posts, comments }) {
   );
 }
 
-function InsightTab({ digest }) {
-  if (!digest) {
-    return <EmptyState text="Belum ada ringkasan insight untuk brand ini. Insight akan muncul otomatis setelah scan pertama selesai diproses." />;
+function InsightTab({ digest, posts, comments }) {
+  if (posts.length === 0 && !digest) {
+    return <EmptyState text="Belum ada data untuk dianalisis. Insight akan muncul otomatis setelah scan pertama selesai diproses." />;
   }
+
+  // ── Hitung insight langsung dari data yang sudah ada — tidak menunggu daily_digests ──
+  const totalViews = posts.reduce((s, p) => s + (p.views || 0), 0);
+  const totalLikes = posts.reduce((s, p) => s + (p.likes || 0), 0);
+  const uniqueCreators = new Set(posts.map((p) => p.author).filter(Boolean)).size;
+  const avgEr = posts.length > 0 ? posts.reduce((s, p) => s + (p.engagement_rate || 0), 0) / posts.length : 0;
+
+  const topVideos = [...posts].sort((a, b) => (b.views || 0) - (a.views || 0)).slice(0, 3);
+
+  const byPlatform = posts.reduce((acc, p) => {
+    const k = p.platform || 'lainnya';
+    acc[k] = acc[k] || { count: 0, views: 0 };
+    acc[k].count += 1;
+    acc[k].views += p.views || 0;
+    return acc;
+  }, {});
+  const platformEntries = Object.entries(byPlatform).sort((a, b) => b[1].views - a[1].views);
+
+  const byCreator = posts.reduce((acc, p) => {
+    const k = p.author || 'unknown';
+    acc[k] = (acc[k] || 0) + (p.views || 0);
+    return acc;
+  }, {});
+  const topCreators = Object.entries(byCreator)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5);
 
   return (
     <div className="insight-tab">
-      <p className="digest-date">
-        Ringkasan {new Date(digest.digest_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-      </p>
-      {digest.brand_score != null && (
-        <div className="score-row">
-          <span className="score-label">Brand Score</span>
-          <span className="score-value">{digest.brand_score}</span>
+      {posts.length > 0 && (
+        <>
+          {/* SECTION: Ringkasan Cepat */}
+          <div className="insight-card">
+            <h3>Ringkasan Cepat</h3>
+            <p className="auto-summary">
+              Brand ini punya <strong>{posts.length} video</strong> dari{' '}
+              <strong>{uniqueCreators} creator</strong> dengan total{' '}
+              <strong>{formatNum(totalViews)} views</strong> dan{' '}
+              <strong>{formatNum(totalLikes)} likes</strong>. Rata-rata engagement rate berada di{' '}
+              <strong>{avgEr.toFixed(2)}%</strong>{' '}
+              {avgEr >= 5 ? '— tergolong baik.' : avgEr >= 2 ? '— tergolong wajar.' : '— masih di bawah rata-rata industri, perlu perhatian.'}
+            </p>
+          </div>
+
+          {/* SECTION: Video Berperforma Terbaik */}
+          <div className="insight-card">
+            <h3>Video Berperforma Terbaik</h3>
+            <div className="top-video-list">
+              {topVideos.map((v, i) => (
+                <div key={v.id} className="top-video-row">
+                  <span className="rank">#{i + 1}</span>
+                  <div className="top-video-info">
+                    <p className="top-video-caption">{truncate(v.caption || '(tanpa caption)', 70)}</p>
+                    <p className="top-video-meta">
+                      @{v.author || 'unknown'} · {v.platform} · {formatNum(v.views)} views ·{' '}
+                      {(v.engagement_rate ?? 0).toFixed(2)}% ER
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* SECTION: Distribusi Platform */}
+          <div className="insight-card">
+            <h3>Distribusi Platform</h3>
+            <div className="platform-list">
+              {platformEntries.map(([platform, d]) => {
+                const pct = totalViews > 0 ? ((d.views / totalViews) * 100).toFixed(0) : 0;
+                return (
+                  <div key={platform} className="platform-row">
+                    <div className="platform-row-top">
+                      <span className="platform-name">{platform}</span>
+                      <span className="platform-count">{d.count} video · {formatNum(d.views)} views</span>
+                    </div>
+                    <div className="platform-bar-bg">
+                      <div className="platform-bar-fill" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* SECTION: Top Creator */}
+          <div className="insight-card">
+            <h3>Top 5 Creator</h3>
+            <ol className="creator-list">
+              {topCreators.map(([creator, views]) => (
+                <li key={creator}>
+                  <span>{creator}</span>
+                  <span className="creator-views">{formatNum(views)} views</span>
+                </li>
+              ))}
+            </ol>
+          </div>
+        </>
+      )}
+
+      {/* SECTION: Ringkasan dari Sistem (kalau sudah ada, dari WF-15) */}
+      {digest && (
+        <div className="insight-card">
+          <h3>Ringkasan dari Sistem</h3>
+          <p className="digest-date">
+            {new Date(digest.digest_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+          {digest.brand_score != null && (
+            <div className="score-row">
+              <span className="score-label">Brand Score</span>
+              <span className="score-value">{digest.brand_score}</span>
+            </div>
+          )}
+          <p className="digest-text">{digest.digest_text}</p>
         </div>
       )}
-      <p className="digest-text">{digest.digest_text}</p>
 
       <style jsx>{`
+        .insight-tab { display: flex; flex-direction: column; gap: 18px; }
+        .insight-card {
+          background: var(--white);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 22px;
+        }
+        .insight-card h3 {
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--navy);
+          margin: 0 0 14px;
+        }
+        .auto-summary { font-size: 14px; line-height: 1.8; color: var(--ink); margin: 0; }
+        .auto-summary strong { color: var(--navy); }
+
+        .top-video-list { display: flex; flex-direction: column; gap: 12px; }
+        .top-video-row { display: flex; gap: 12px; align-items: flex-start; }
+        .rank { font-family: 'Fraunces', serif; font-size: 18px; font-weight: 700; color: var(--gold); min-width: 28px; }
+        .top-video-caption { font-size: 13px; color: var(--ink); margin: 0 0 3px; }
+        .top-video-meta { font-size: 12px; color: var(--brown); margin: 0; }
+
+        .platform-list { display: flex; flex-direction: column; gap: 14px; }
+        .platform-row-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .platform-name { font-size: 13px; font-weight: 600; color: var(--navy); text-transform: capitalize; }
+        .platform-count { font-size: 12px; color: var(--brown); }
+        .platform-bar-bg { height: 8px; background: var(--cream); border-radius: 999px; overflow: hidden; }
+        .platform-bar-fill { height: 100%; background: var(--gold); border-radius: 999px; }
+
+        .creator-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; counter-reset: creator; }
+        .creator-list li {
+          display: flex;
+          justify-content: space-between;
+          font-size: 13px;
+          color: var(--ink);
+          padding: 8px 12px;
+          background: var(--cream);
+          border-radius: 8px;
+        }
+        .creator-views { color: var(--brown); font-weight: 600; }
+
         .digest-date { font-size: 12px; color: var(--brown); margin: 0 0 12px; }
         .score-row { display: flex; align-items: baseline; gap: 8px; margin-bottom: 16px; }
         .score-label { font-size: 13px; color: var(--brown); }
         .score-value { font-size: 24px; font-weight: 700; color: var(--navy); font-family: 'Fraunces', serif; }
-        .digest-text { font-size: 14px; line-height: 1.8; color: var(--ink); white-space: pre-wrap; }
+        .digest-text { font-size: 14px; line-height: 1.8; color: var(--ink); white-space: pre-wrap; margin: 0; }
       `}</style>
     </div>
   );

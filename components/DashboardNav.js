@@ -7,9 +7,13 @@ import LogoutButton from '@/components/LogoutButton';
 const NAV_BY_ROLE = {
   super_admin: [
     { href: '/dashboard/brands', label: 'Brands' },
+    { href: '/dashboard/export', label: 'Export' },
     { href: '/dashboard/team', label: 'Tim' },
   ],
-  admin: [{ href: '/dashboard/my-scans', label: 'Brand Saya' }],
+  admin: [
+    { href: '/dashboard/my-scans', label: 'Brand Saya' },
+    { href: '/dashboard/export', label: 'Export' },
+  ],
   client: [{ href: '/dashboard/client', label: 'Dashboard' }],
 };
 
