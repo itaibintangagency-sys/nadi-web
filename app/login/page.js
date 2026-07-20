@@ -31,7 +31,7 @@ export default function LoginPage() {
 
   return (
     <div style={{ maxWidth: 360, margin: '80px auto', fontFamily: 'sans-serif' }}>
-      <h1 style={{ fontSize: 22, marginBottom: 24 }}>Masuk ke BIS</h1>
+      <h1 style={{ fontSize: 22, marginBottom: 24 }}>LogIn</h1>
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
         <input
           type="email"
