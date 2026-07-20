@@ -32,7 +32,7 @@ export default function BrandTabs({ digest, posts, comments }) {
           display: flex;
           gap: 4px;
           border-bottom: 1px solid var(--line);
-          margin-bottom: 24px;
+          margin-bottom: 28px;
         }
         .tab-bar button {
           padding: 10px 18px;
@@ -83,7 +83,62 @@ function InsightTab({ digest }) {
   );
 }
 
-// ── Shared control bar: search + pagination size + export CSV ──────────────
+// ── Bar chart: top 10 creator by total views ────────────────────────────
+function TopCreatorChart({ posts }) {
+  const data = useMemo(() => {
+    const byCreator = {};
+    posts.forEach((p) => {
+      const key = p.author || 'unknown';
+      byCreator[key] = (byCreator[key] || 0) + (p.views || 0);
+    });
+    return Object.entries(byCreator)
+      .map(([creator, views]) => ({ creator, views }))
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 10);
+  }, [posts]);
+
+  if (data.length === 0) return null;
+
+  const max = Math.max(...data.map((d) => d.views), 1);
+  const barWidth = 100 / data.length;
+
+  return (
+    <div className="chart-card">
+      <h3>Top 10 Creator berdasarkan Views</h3>
+      <svg viewBox="0 0 600 220" className="chart-svg" preserveAspectRatio="none">
+        {data.map((d, i) => {
+          const h = (d.views / max) * 160;
+          const x = i * (600 / data.length) + 8;
+          const w = 600 / data.length - 16;
+          return (
+            <g key={d.creator}>
+              <rect x={x} y={180 - h} width={w} height={h} rx="4" className="bar" />
+              <text x={x + w / 2} y={196} textAnchor="middle" className="bar-label">
+                {truncate(d.creator, 8)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <style jsx>{`
+        .chart-card {
+          background: var(--white);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 20px 20px 8px;
+          margin-bottom: 28px;
+        }
+        h3 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--navy); margin: 0 0 12px; }
+        .chart-svg { width: 100%; height: 200px; }
+        :global(.bar) { fill: var(--gold); transition: fill 0.2s ease; }
+        :global(.bar:hover) { fill: var(--navy); }
+        :global(.bar-label) { font-size: 9px; fill: var(--brown); }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Shared control bar ───────────────────────────────────────────────────
 function TableControls({ search, setSearch, pageSize, setPageSize, onExport, exportLabel }) {
   return (
     <div className="controls">
@@ -113,7 +168,7 @@ function TableControls({ search, setSearch, pageSize, setPageSize, onExport, exp
           justify-content: space-between;
           align-items: center;
           gap: 12px;
-          margin-bottom: 16px;
+          margin-bottom: 18px;
           flex-wrap: wrap;
         }
         .search-input { flex: 1; min-width: 200px; }
@@ -170,7 +225,7 @@ function Pagination({ page, totalPages, setPage, totalRows, pageSize }) {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-top: 16px;
+          margin-top: 18px;
           font-size: 12px;
           color: var(--brown);
           flex-wrap: wrap;
@@ -214,6 +269,15 @@ function downloadCsv(filename, rows, headers) {
   URL.revokeObjectURL(url);
 }
 
+// Rekonstruksi link video dari platform + author + post_id — tidak butuh kolom URL baru
+function buildVideoLink(platform, author, postId) {
+  if (!postId) return null;
+  if (platform === 'tiktok' && author) return `https://www.tiktok.com/@${author}/video/${postId}`;
+  if (platform === 'youtube') return `https://www.youtube.com/watch?v=${postId}`;
+  if (platform === 'instagram') return `https://www.instagram.com/p/${postId}/`;
+  return null;
+}
+
 // ── Video Tab ────────────────────────────────────────────────────────────
 function VideoTable({ posts }) {
   const [search, setSearch] = useState('');
@@ -242,6 +306,7 @@ function VideoTable({ posts }) {
         shares: p.shares,
         er: p.engagement_rate,
         tanggal: p.posted_at ? new Date(p.posted_at).toLocaleString('id-ID') : '',
+        link: buildVideoLink(p.platform, p.author, p.post_id) ?? '',
       })),
       [
         { key: 'creator', label: 'Creator' },
@@ -253,6 +318,7 @@ function VideoTable({ posts }) {
         { key: 'shares', label: 'Shares' },
         { key: 'er', label: 'ER' },
         { key: 'tanggal', label: 'Tanggal' },
+        { key: 'link', label: 'Link' },
       ]
     );
   }
@@ -263,6 +329,8 @@ function VideoTable({ posts }) {
 
   return (
     <div className="video-table">
+      <TopCreatorChart posts={posts} />
+
       <TableControls
         search={search}
         setSearch={(v) => {
@@ -291,26 +359,39 @@ function VideoTable({ posts }) {
               <th>Shares</th>
               <th>ER</th>
               <th>Tanggal</th>
+              <th>Link</th>
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((p) => (
-              <tr key={p.id}>
-                <td className="creator-cell">{p.author || '—'}</td>
-                <td className="caption-cell" title={p.caption}>
-                  {p.caption || '(tanpa caption)'}
-                </td>
-                <td>
-                  <span className="platform-tag">{p.platform}</span>
-                </td>
-                <td>{formatNum(p.views)}</td>
-                <td>{formatNum(p.likes)}</td>
-                <td>{formatNum(p.comments_count)}</td>
-                <td>{formatNum(p.shares)}</td>
-                <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
-                <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
-              </tr>
-            ))}
+            {pageRows.map((p) => {
+              const link = buildVideoLink(p.platform, p.author, p.post_id);
+              return (
+                <tr key={p.id}>
+                  <td className="creator-cell">{p.author || '—'}</td>
+                  <td className="caption-cell" title={p.caption}>
+                    {p.caption || '(tanpa caption)'}
+                  </td>
+                  <td>
+                    <span className="platform-tag">{p.platform}</span>
+                  </td>
+                  <td>{formatNum(p.views)}</td>
+                  <td>{formatNum(p.likes)}</td>
+                  <td>{formatNum(p.comments_count)}</td>
+                  <td>{formatNum(p.shares)}</td>
+                  <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
+                  <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
+                  <td>
+                    {link ? (
+                      <a href={link} target="_blank" rel="noopener noreferrer" className="link-btn">
+                        Lihat ↗
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -426,29 +507,34 @@ function TableStyles() {
         width: 100%;
         border-collapse: collapse;
         font-size: 13px;
-        min-width: 640px;
-      }
-      th, td {
-        text-align: left;
-        padding: 10px 14px;
-        border-bottom: 1px solid var(--line);
-        white-space: nowrap;
+        min-width: 720px;
       }
       th {
+        text-align: left;
+        padding: 12px 16px;
         background: var(--cream);
         color: var(--brown);
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.04em;
         font-weight: 700;
+        white-space: nowrap;
+        position: sticky;
+        top: 0;
+      }
+      td {
+        text-align: left;
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+        line-height: 1.6;
       }
       tbody tr:hover { background: #FCFAF3; }
-      .creator-cell { color: var(--navy); font-weight: 600; }
+      tbody tr:last-child td { border-bottom: none; }
+      .creator-cell { color: var(--navy); font-weight: 600; white-space: nowrap; }
       .caption-cell {
-        max-width: 320px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        max-width: 300px;
+        min-width: 200px;
         color: var(--ink);
       }
       .platform-tag {
@@ -457,12 +543,25 @@ function TableStyles() {
         font-weight: 700;
         color: var(--brown);
         background: var(--cream);
-        padding: 2px 8px;
+        padding: 3px 9px;
         border-radius: 999px;
+        white-space: nowrap;
       }
-      .date-cell { color: var(--brown); }
-      .er-high { color: #0F6E5C; font-weight: 700; }
-      .er-mid { color: var(--gold); font-weight: 600; }
+      .date-cell { color: var(--brown); white-space: nowrap; }
+      .er-high { color: #0F6E5C; font-weight: 700; white-space: nowrap; }
+      .er-mid { color: var(--gold); font-weight: 600; white-space: nowrap; }
+      td:not(.caption-cell) { white-space: nowrap; }
+      .link-btn {
+        color: var(--navy);
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 12px;
+        border: 1px solid var(--navy);
+        padding: 4px 10px;
+        border-radius: 999px;
+        white-space: nowrap;
+      }
+      .link-btn:hover { background: var(--navy); color: var(--white); }
     `}</style>
   );
 }
@@ -497,4 +596,8 @@ function formatNum(n) {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'jt';
   if (n >= 1_000) return (n / 1_000).toFixed(1) + 'rb';
   return String(n);
+}
+
+function truncate(str, n) {
+  return str.length > n ? str.slice(0, n) + '…' : str;
 }
