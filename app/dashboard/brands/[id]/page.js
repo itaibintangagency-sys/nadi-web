@@ -116,7 +116,7 @@ function StatCard({ label, value }) {
     <div className="stat-card">
       <p className="stat-label">{label}</p>
       <p className="stat-value">{value}</p>
-      <style jsx>{`
+      <style>{`
         .stat-card {
           background: var(--white);
           border: 1px solid var(--line);
