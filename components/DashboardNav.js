@@ -19,9 +19,10 @@ const ROLE_LABEL = {
   client: 'Client',
 };
 
-export default function DashboardNav({ role, email }) {
+export default function DashboardNav({ role, email, fullName }) {
   const pathname = usePathname();
   const items = NAV_BY_ROLE[role] ?? [];
+  const displayName = fullName?.trim() ? fullName : email;
 
   return (
     <header className="dashboard-nav">
@@ -39,12 +40,15 @@ export default function DashboardNav({ role, email }) {
               {item.label}
             </Link>
           ))}
+          <Link href="/dashboard/profile" className={pathname.startsWith('/dashboard/profile') ? 'active' : ''}>
+            Profil
+          </Link>
         </nav>
       </div>
 
       <div className="right">
         <span className="role-tag">{ROLE_LABEL[role] ?? role}</span>
-        <span className="email">{email}</span>
+        <span className="email">{displayName}</span>
         <LogoutButton />
       </div>
 
