@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase-browser';
@@ -56,6 +57,9 @@ export default function LoginPage() {
             {loading ? 'Memproses...' : 'Masuk'}
           </button>
         </form>
+        <p className="forgot-link">
+          <Link href="/forgot-password">Lupa password?</Link>
+        </p>
         <p className="hint">Belum punya akun? Hubungi Super Admin untuk diundang.</p>
       </div>
 
@@ -102,6 +106,14 @@ export default function LoginPage() {
           color: #b3261e;
           font-size: 13px;
           margin: 0;
+        }
+        .forgot-link {
+          font-size: 12px;
+          text-align: right;
+          margin-top: 8px;
+        }
+        .forgot-link a {
+          color: var(--brown);
         }
         .hint {
           font-size: 12px;

@@ -1,6 +1,7 @@
-import Link from 'next/link';
 import { siteConfig, getWhatsappUrl, getTelegramUrl } from '@/lib/site-config';
 import Reveal from '@/components/Reveal';
+import PublicNav from '@/components/PublicNav';
+import PublicFooter from '@/components/PublicFooter';
 
 export default function LandingPage() {
   const steps = [
@@ -20,13 +21,7 @@ export default function LandingPage() {
 
   return (
     <div className="landing">
-      {/* NAV */}
-      <header className="nav">
-        <span className="logo">{siteConfig.productName}</span>
-        <Link href="/login" className="nav-login">
-          Masuk
-        </Link>
-      </header>
+      <PublicNav />
 
       {/* HERO */}
       <section className="hero">
@@ -142,60 +137,13 @@ export default function LandingPage() {
         </Reveal>
       </section>
 
-      {/* FOOTER */}
-      <footer className="footer">
-        <p>
-          {siteConfig.productName} — Brand Intelligence System. <Link href="/login">Masuk</Link>
-        </p>
-      </footer>
+      <PublicFooter />
 
       <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&display=swap');
-
-        :root {
-          --navy: #3356AA;
-          --gold: #D1A617;
-          --cream: #FFEFCA;
-          --brown: #857555;
-          --ink: #2A2620;
-          --white: #FFFFFF;
-        }
-
-        * { box-sizing: border-box; }
-
         .landing {
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
           color: var(--ink);
           background: var(--white);
-        }
-
-        .nav {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 22px 32px;
-          background: var(--navy);
-        }
-        .logo {
-          font-family: 'Fraunces', serif;
-          font-size: 21px;
-          font-weight: 600;
-          color: var(--cream);
-          letter-spacing: -0.01em;
-        }
-        .nav-login {
-          color: var(--cream);
-          font-size: 13px;
-          font-weight: 500;
-          text-decoration: none;
-          border: 1px solid rgba(255,239,202,0.4);
-          padding: 7px 18px;
-          border-radius: 999px;
-          transition: background 0.25s ease, border-color 0.25s ease;
-        }
-        .nav-login:hover {
-          background: rgba(255,239,202,0.12);
-          border-color: var(--cream);
         }
 
         .hero {
@@ -429,18 +377,6 @@ export default function LandingPage() {
         .final-cta h2 {
           color: var(--navy);
           margin-bottom: 28px;
-        }
-
-        .footer {
-          text-align: center;
-          padding: 28px;
-          font-size: 12px;
-          color: var(--brown);
-          background: var(--white);
-        }
-        .footer a {
-          color: var(--navy);
-          font-weight: 500;
         }
       `}</style>
     </div>
