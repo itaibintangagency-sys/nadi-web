@@ -58,10 +58,19 @@ a {
   transform: none;
 }
 
+html {
+  color-scheme: light;
+}
+
 .input-field {
   padding: 10px 12px;
   border: 1px solid var(--line);
   border-radius: 8px;
   font-size: 14px;
   font-family: inherit;
+  background: var(--white);
+  color: var(--ink);
+}
+.input-field::placeholder {
+  color: #B0A78E;
 }
