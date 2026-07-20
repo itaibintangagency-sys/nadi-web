@@ -104,10 +104,10 @@ function sortData(data, sortKey, sortDir) {
 
 function SortableTh({ label, sortKey, sort, setSort }) {
   const isActive = sort.key === sortKey;
+  const arrow = isActive ? (sort.dir === 'asc' ? ' ↑' : ' ↓') : '';
   return (
     <th onClick={() => setSort(sortKey)} className={isActive ? 'active-sort' : ''}>
-      {label}
-      <span className="sort-arrow">{isActive ? (sort.dir === 'asc' ? ' ▲' : ' ▼') : ''}</span>
+      {label}{arrow}
     </th>
   );
 }
@@ -530,28 +530,43 @@ function VideoTable({ posts, comments }) {
               <SortableTh label="Shares" sortKey="shares" sort={sort} setSort={setSort} />
               <SortableTh label="ER" sortKey="engagement_rate" sort={sort} setSort={setSort} />
               <SortableTh label="Tanggal" sortKey="posted_at" sort={sort} setSort={setSort} />
-              <th>Detail</th>
+              <th>Link</th>
             </tr>
           </thead>
           <tbody>
-            {pageRows.map((p) => (
-              <tr key={p.id} className="data-row" onClick={() => setSelectedPost(p)}>
-                <td className="creator-cell">{p.author || '—'}</td>
-                <td className="caption-cell">{truncate(p.caption || '(tanpa caption)', 40)}</td>
-                <td>
-                  <span className="platform-tag">{p.platform}</span>
-                </td>
-                <td>{formatNum(p.views)}</td>
-                <td>{formatNum(p.likes)}</td>
-                <td>{formatNum(p.comments_count)}</td>
-                <td>{formatNum(p.shares)}</td>
-                <td className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}%</td>
-                <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
-                <td>
-                  <span className="detail-btn">Lihat →</span>
-                </td>
-              </tr>
-            ))}
+            {pageRows.map((p) => {
+              const link = buildVideoLink(p.platform, p.author, p.post_id);
+              return (
+                <tr key={p.id} className="data-row" onClick={() => setSelectedPost(p)}>
+                  <td className="creator-cell">{p.author || '—'}</td>
+                  <td className="caption-cell">{truncate(p.caption || '(tanpa caption)', 40)}</td>
+                  <td>
+                    <span className="platform-tag">{p.platform}</span>
+                  </td>
+                  <td>{formatNum(p.views)}</td>
+                  <td>{formatNum(p.likes)}</td>
+                  <td>{formatNum(p.comments_count)}</td>
+                  <td>{formatNum(p.shares)}</td>
+                  <td>{p.engagement_rate >= 8 ? <span className="er-badge">{p.engagement_rate.toFixed(2)}%</span> : `${(p.engagement_rate ?? 0).toFixed(2)}%`}</td>
+                  <td className="date-cell">{p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}</td>
+                  <td>
+                    {link ? (
+                      <a
+                        href={link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="link-btn"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        ↗ Lihat
+                      </a>
+                    ) : (
+                      '—'
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -683,35 +698,36 @@ function TableStyles() {
         table-layout: fixed;
         font-size: 13px;
         min-width: 780px;
+        background: var(--white);
       }
       th {
         text-align: left;
         padding: 12px 14px;
-        background: var(--navy);
-        color: var(--cream);
-        font-size: 10.5px;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        background: var(--cream);
+        color: var(--navy);
+        font-size: 12.5px;
         font-weight: 700;
         cursor: pointer;
         user-select: none;
         white-space: nowrap;
+        border-bottom: 2px solid var(--gold);
       }
+      th:hover { color: var(--gold); }
       th.active-sort { color: var(--gold); }
-      .sort-arrow { font-size: 9px; }
       td {
         text-align: left;
         padding: 12px 14px;
-        border-bottom: 1px solid var(--line);
         vertical-align: middle;
         overflow: hidden;
         white-space: nowrap;
+        border-bottom: 1px solid var(--line);
       }
       .data-row { cursor: pointer; transition: background 0.15s ease; }
-      .data-row:hover { background: var(--cream); }
-      .data-row-static:hover { background: #FCFAF3; }
-      tbody tr:last-child td { border-bottom: none; }
-      .creator-cell { color: var(--navy); font-weight: 600; }
+      .data-row:nth-child(even) { background: #FBF8EF; }
+      .data-row:hover { background: #FFF1C4; }
+      .data-row-static:nth-child(even) { background: #FBF8EF; }
+      .data-row-static:hover { background: #FFF1C4; }
+      .creator-cell { color: var(--ink); font-weight: 500; }
       .caption-cell { color: var(--ink); }
       .platform-tag {
         font-size: 10px;
@@ -723,10 +739,29 @@ function TableStyles() {
         border-radius: 999px;
       }
       .date-cell { color: var(--brown); }
-      .er-high { color: #0F6E5C; font-weight: 700; }
-      .er-mid { color: var(--gold); font-weight: 600; }
-      .detail-btn { color: var(--navy); font-weight: 600; font-size: 12px; }
-      .data-row:hover .detail-btn { text-decoration: underline; }
+      .er-badge {
+        display: inline-block;
+        background: #E1F5EE;
+        color: #0F6E5C;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--navy);
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 12px;
+        border: 1px solid var(--line);
+        padding: 5px 12px;
+        border-radius: 8px;
+        background: var(--white);
+      }
+      .link-btn:hover { border-color: var(--navy); background: var(--cream); }
     `}</style>
   );
 }
