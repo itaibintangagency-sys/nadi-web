@@ -4,19 +4,8 @@ import Reveal from '@/components/Reveal';
 
 export const dynamic = 'force-dynamic';
 
-const statusLabel = {
-  active: 'Aktif',
-  paused: 'Dijeda',
-  completed: 'Selesai',
-  expired: 'Kedaluwarsa',
-};
-
-const statusClass = {
-  active: 'status-active',
-  paused: 'status-paused',
-  completed: 'status-completed',
-  expired: 'status-expired',
-};
+const statusLabel = { active: 'Aktif', paused: 'Dijeda', completed: 'Selesai', expired: 'Kedaluwarsa' };
+const statusClass = { active: 'status-active', paused: 'status-paused', completed: 'status-completed', expired: 'status-expired' };
 
 export default async function BrandsPage() {
   const supabase = createClient();
@@ -24,6 +13,31 @@ export default async function BrandsPage() {
     .from('brands')
     .select('id, name, client_name, platforms, status, start_date, end_date, created_at')
     .order('created_at', { ascending: false });
+
+  // Ambil semua raw_posts sekaligus untuk brand-brand ini, lalu agregasi per brand_id
+  // di sisi server — hindari 1 query terpisah per card.
+  const brandIds = (brands ?? []).map((b) => b.id);
+  let statsByBrand = {};
+
+  if (brandIds.length > 0) {
+    const { data: posts } = await supabase
+      .from('raw_posts')
+      .select('brand_id, views, likes, comments_count, engagement_rate')
+      .in('brand_id', brandIds);
+
+    statsByBrand = (posts ?? []).reduce((acc, p) => {
+      const s = acc[p.brand_id] ?? { views: 0, likes: 0, comments: 0, erSum: 0, erCount: 0 };
+      s.views += p.views || 0;
+      s.likes += p.likes || 0;
+      s.comments += p.comments_count || 0;
+      if (p.engagement_rate != null) {
+        s.erSum += p.engagement_rate;
+        s.erCount += 1;
+      }
+      acc[p.brand_id] = s;
+      return acc;
+    }, {});
+  }
 
   return (
     <div className="brands-page">
@@ -38,11 +52,7 @@ export default async function BrandsPage() {
         </Link>
       </div>
 
-      {error && (
-        <p className="error-box">
-          Gagal memuat data: {error.message}
-        </p>
-      )}
+      {error && <p className="error-box">Gagal memuat data: {error.message}</p>}
 
       {!error && brands?.length === 0 && (
         <div className="empty-state">
@@ -54,36 +64,60 @@ export default async function BrandsPage() {
       )}
 
       <div className="grid">
-        {brands?.map((b, i) => (
-          <Reveal delay={i * 70} key={b.id}>
-            <Link href={`/dashboard/brands/${b.id}`} className="brand-card">
-              <div className="card-top">
-                <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
-                  {statusLabel[b.status] ?? b.status}
-                </span>
-              </div>
-              <h2>{b.name}</h2>
-              <p className="client-name">{b.client_name}</p>
+        {brands?.map((b, i) => {
+          const s = statsByBrand[b.id] ?? { views: 0, likes: 0, comments: 0, erSum: 0, erCount: 0 };
+          const avgEr = s.erCount > 0 ? (s.erSum / s.erCount).toFixed(2) : '0.00';
 
-              {b.platforms?.length > 0 && (
-                <div className="platform-tags">
-                  {b.platforms.map((p) => (
-                    <span key={p} className="platform-tag">
-                      {p}
-                    </span>
-                  ))}
+          return (
+            <Reveal delay={i * 70} key={b.id}>
+              <Link href={`/dashboard/brands/${b.id}`} className="brand-card">
+                <div className="card-top">
+                  <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
+                    {statusLabel[b.status] ?? b.status}
+                  </span>
                 </div>
-              )}
+                <h2>{b.name}</h2>
+                <p className="client-name">{b.client_name}</p>
 
-              {b.start_date && (
-                <p className="date-range">
-                  {new Date(b.start_date).toLocaleDateString('id-ID')}
-                  {b.end_date && ` — ${new Date(b.end_date).toLocaleDateString('id-ID')}`}
-                </p>
-              )}
-            </Link>
-          </Reveal>
-        ))}
+                {b.platforms?.length > 0 && (
+                  <div className="platform-tags">
+                    {b.platforms.map((p) => (
+                      <span key={p} className="platform-tag">
+                        {p}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mini-stats">
+                  <div>
+                    <span className="mini-label">Views</span>
+                    <span className="mini-value">{formatNum(s.views)}</span>
+                  </div>
+                  <div>
+                    <span className="mini-label">Likes</span>
+                    <span className="mini-value">{formatNum(s.likes)}</span>
+                  </div>
+                  <div>
+                    <span className="mini-label">Komentar</span>
+                    <span className="mini-value">{formatNum(s.comments)}</span>
+                  </div>
+                  <div>
+                    <span className="mini-label">Avg ER</span>
+                    <span className="mini-value">{avgEr}%</span>
+                  </div>
+                </div>
+
+                {b.start_date && (
+                  <p className="date-range">
+                    {new Date(b.start_date).toLocaleDateString('id-ID')}
+                    {b.end_date && ` — ${new Date(b.end_date).toLocaleDateString('id-ID')}`}
+                  </p>
+                )}
+              </Link>
+            </Reveal>
+          );
+        })}
       </div>
 
       <style>{`
@@ -124,7 +158,7 @@ export default async function BrandsPage() {
 
         .grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
           gap: 16px;
         }
         .brand-card {
@@ -156,7 +190,7 @@ export default async function BrandsPage() {
         .brand-card h2 { font-size: 17px; margin: 0 0 4px; color: var(--navy); }
         .client-name { font-size: 13px; color: var(--brown); margin: 0 0 14px; }
 
-        .platform-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .platform-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
         .platform-tag {
           font-size: 11px;
           background: var(--cream);
@@ -166,8 +200,28 @@ export default async function BrandsPage() {
           text-transform: capitalize;
         }
 
+        .mini-stats {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 6px;
+          margin-bottom: 14px;
+          padding: 12px 8px;
+          background: var(--cream);
+          border-radius: 10px;
+        }
+        .mini-stats > div { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .mini-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--brown); }
+        .mini-value { font-size: 13px; font-weight: 700; color: var(--navy); }
+
         .date-range { font-size: 12px; color: var(--brown); margin: 0; }
       `}</style>
     </div>
   );
+}
+
+function formatNum(n) {
+  if (n == null) return '0';
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'jt';
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + 'rb';
+  return String(n);
 }
