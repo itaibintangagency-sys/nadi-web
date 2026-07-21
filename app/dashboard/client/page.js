@@ -33,12 +33,13 @@ export default async function ClientHomePage({ searchParams }) {
     ? searchParams.brand
     : myBrands[0].id;
 
-  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }] = await Promise.all([
+  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }, { data: snapshots }] = await Promise.all([
     supabase.from('brands').select('*').eq('id', selectedId).single(),
     supabase.from('raw_posts').select('*').eq('brand_id', selectedId).order('posted_at', { ascending: false }),
     supabase.from('raw_comments').select('*').eq('brand_id', selectedId).order('commented_at', { ascending: false }).limit(500),
     supabase.from('daily_digests').select('*').eq('brand_id', selectedId).order('digest_date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('brand_stats').select('*').eq('brand_id', selectedId).maybeSingle(),
+    supabase.from('competitor_snapshots').select('*').eq('brand_id', selectedId),
   ]);
 
   const totalViews = stats?.total_views ?? 0;
@@ -88,7 +89,7 @@ export default async function ClientHomePage({ searchParams }) {
       </Reveal>
 
       <Reveal delay={160}>
-        <BrandTabs digest={digest} posts={posts ?? []} comments={comments ?? []} />
+        <BrandTabs digest={digest} posts={posts ?? []} comments={comments ?? []} competitors={brand.competitors ?? []} snapshots={snapshots ?? []} />
       </Reveal>
 
       <style>{`
