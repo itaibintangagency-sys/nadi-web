@@ -257,7 +257,7 @@ function SortableTh({ label, sortKey, sort, setSort }) {
 }
 
 // ── Shared control bar ───────────────────────────────────────────────────
-function TableControls({ search, setSearch, pageSize, setPageSize, onExport, exportLabel }) {
+function TableControls({ search, setSearch, platform, setPlatform, platformOptions, pageSize, setPageSize, onExport, exportLabel }) {
   return (
     <div className="controls">
       <input
@@ -268,6 +268,16 @@ function TableControls({ search, setSearch, pageSize, setPageSize, onExport, exp
         className="input-field search-input"
       />
       <div className="controls-right">
+        {platformOptions && (
+          <select value={platform} onChange={(e) => setPlatform(e.target.value)} className="page-size-select">
+            <option value="all">Semua Platform</option>
+            {platformOptions.map((p) => (
+              <option key={p} value={p} style={{ textTransform: 'capitalize' }}>
+                {p.charAt(0).toUpperCase() + p.slice(1)}
+              </option>
+            ))}
+          </select>
+        )}
         <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="page-size-select">
           {PAGE_SIZE_OPTIONS.map((n) => (
             <option key={n} value={n}>
@@ -290,7 +300,7 @@ function TableControls({ search, setSearch, pageSize, setPageSize, onExport, exp
           flex-wrap: wrap;
         }
         .search-input { flex: 1; min-width: 200px; }
-        .controls-right { display: flex; gap: 8px; align-items: center; }
+        .controls-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
         .page-size-select {
           padding: 9px 10px;
           border: 1px solid var(--line);
@@ -576,10 +586,13 @@ function DetailPanel({ post, linkedComments, onClose }) {
 // ── Video Tab ────────────────────────────────────────────────────────────
 function VideoTable({ posts, comments }) {
   const [search, setSearch] = useState('');
+  const [platform, setPlatform] = useState('all');
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
   const [sort, setSortState] = useState({ key: 'views', dir: 'desc' });
   const [selectedPost, setSelectedPost] = useState(null);
+
+  const platformOptions = useMemo(() => [...new Set(posts.map((p) => p.platform).filter(Boolean))], [posts]);
 
   function setSort(key) {
     setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
@@ -587,11 +600,11 @@ function VideoTable({ posts, comments }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = q
-      ? posts.filter((p) => (p.caption ?? '').toLowerCase().includes(q) || (p.author ?? '').toLowerCase().includes(q))
-      : posts;
+    let base = posts;
+    if (platform !== 'all') base = base.filter((p) => p.platform === platform);
+    if (q) base = base.filter((p) => (p.caption ?? '').toLowerCase().includes(q) || (p.author ?? '').toLowerCase().includes(q));
     return sortData(base, sort.key, sort.dir);
-  }, [posts, search, sort]);
+  }, [posts, search, platform, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -640,6 +653,12 @@ function VideoTable({ posts, comments }) {
           setSearch(v);
           setPage(1);
         }}
+        platform={platform}
+        setPlatform={(v) => {
+          setPlatform(v);
+          setPage(1);
+        }}
+        platformOptions={platformOptions}
         pageSize={pageSize}
         setPageSize={(v) => {
           setPageSize(v);
@@ -727,9 +746,12 @@ function VideoTable({ posts, comments }) {
 // ── Komentar Tab ─────────────────────────────────────────────────────────
 function KomentarTable({ comments }) {
   const [search, setSearch] = useState('');
+  const [platform, setPlatform] = useState('all');
   const [pageSize, setPageSize] = useState(50);
   const [page, setPage] = useState(1);
   const [sort, setSortState] = useState({ key: 'commented_at', dir: 'desc' });
+
+  const platformOptions = useMemo(() => [...new Set(comments.map((c) => c.platform).filter(Boolean))], [comments]);
 
   function setSort(key) {
     setSortState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
@@ -737,11 +759,11 @@ function KomentarTable({ comments }) {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const base = q
-      ? comments.filter((c) => (c.content ?? '').toLowerCase().includes(q) || (c.author ?? '').toLowerCase().includes(q))
-      : comments;
+    let base = comments;
+    if (platform !== 'all') base = base.filter((c) => c.platform === platform);
+    if (q) base = base.filter((c) => (c.content ?? '').toLowerCase().includes(q) || (c.author ?? '').toLowerCase().includes(q));
     return sortData(base, sort.key, sort.dir);
-  }, [comments, search, sort]);
+  }, [comments, search, platform, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
@@ -778,6 +800,12 @@ function KomentarTable({ comments }) {
           setSearch(v);
           setPage(1);
         }}
+        platform={platform}
+        setPlatform={(v) => {
+          setPlatform(v);
+          setPage(1);
+        }}
+        platformOptions={platformOptions}
         pageSize={pageSize}
         setPageSize={(v) => {
           setPageSize(v);
@@ -868,9 +896,9 @@ function TableStyles() {
       }
       .data-row { cursor: pointer; transition: background 0.15s ease; }
       .data-row:nth-child(even) { background: #FBF8EF; }
-      .data-row:hover { background: #FFF1C4; }
+      .data-row:hover, .data-row:nth-child(even):hover { background: #FFF1C4 !important; }
       .data-row-static:nth-child(even) { background: #FBF8EF; }
-      .data-row-static:hover { background: #FFF1C4; }
+      .data-row-static:hover, .data-row-static:nth-child(even):hover { background: #FFF1C4 !important; }
       .creator-cell { color: var(--ink); font-weight: 500; }
       .caption-cell { color: var(--ink); }
       .platform-tag {
