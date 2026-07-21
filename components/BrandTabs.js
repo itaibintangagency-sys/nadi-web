@@ -106,6 +106,10 @@ function InsightTab({ digest, posts, comments }) {
   }, {});
   const sentimentEntries = Object.entries(bySentiment).sort((a, b) => b[1] - a[1]);
 
+  // ── Ringkasan & kata paling sering disebut — dihitung dari data komentar ──
+  const commentStats = computeCommentSummary(comments, bySentiment, analyzedComments.length);
+  const topKeywords = computeTopKeywords(comments, 20);
+
   return (
     <div className="insight-tab">
       {posts.length > 0 && (
@@ -202,6 +206,29 @@ function InsightTab({ digest, posts, comments }) {
               </div>
             </div>
           )}
+
+          {/* SECTION: Ringkasan Komentar */}
+          {comments.length > 0 && (
+            <div className="insight-card">
+              <h3>Ringkasan Komentar</h3>
+              <p className="auto-summary">{commentStats}</p>
+            </div>
+          )}
+
+          {/* SECTION: Kata yang Paling Sering Disebut */}
+          {topKeywords.length > 0 && (
+            <div className="insight-card">
+              <h3>Kata yang Paling Sering Disebut</h3>
+              <p className="sentiment-sub">Dihitung dari {comments.length} komentar, kata umum (di/yang/dan/dst) sudah disaring</p>
+              <div className="keyword-cloud">
+                {topKeywords.map(([word, count], i) => (
+                  <span key={word} className="keyword-tag" style={keywordStyle(i, topKeywords.length)}>
+                    {word} <em>{count}</em>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -255,6 +282,15 @@ function InsightTab({ digest, posts, comments }) {
         .sentiment-count { font-size: 12px; color: var(--brown); }
         .sentiment-bar-bg { height: 8px; background: var(--cream); border-radius: 999px; overflow: hidden; }
         .sentiment-bar-fill { height: 100%; border-radius: 999px; }
+
+        .keyword-cloud { display: flex; flex-wrap: wrap; gap: 8px; }
+        .keyword-tag {
+          border-radius: 999px;
+          padding: 6px 12px;
+          font-weight: 600;
+          white-space: nowrap;
+        }
+        .keyword-tag em { font-style: normal; opacity: 0.7; margin-left: 4px; font-weight: 400; }
         .platform-row-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .platform-name { font-size: 13px; font-weight: 600; color: var(--navy); text-transform: capitalize; }
         .platform-count { font-size: 12px; color: var(--brown); }
@@ -1113,6 +1149,56 @@ function sentimentCellStyle(sentiment) {
 }
 function sentimentCellLabel(sentiment) {
   return SENTIMENT_LABELS[sentiment] ?? sentiment;
+}
+
+const STOPWORDS = new Set([
+  'yang','di','dan','ke','dari','ini','itu','dengan','untuk','tidak','ya','aku','saya','kamu',
+  'dong','deh','sih','nya','juga','ada','akan','saja','kok','lah','gak','ga','nggak','enggak',
+  'banget','jadi','bisa','udah','sudah','belum','mau','kalau','kalo','kan','karena','atau','pada',
+  'adalah','ku','mu','dia','kita','kami','mereka','apa','siapa','mana','bagaimana','gimana',
+  'kenapa','mengapa','harus','boleh','jangan','masih','lagi','cuma','hanya','semua','tapi',
+  'tetapi','namun','oleh','punya','aja','sama','biar','kayak','kaya','iya','oke','ok','min',
+  'kak','bang','gan','nih','tuh','the','and','for','you','your','with','this','that','are',
+  'was','has','have','not','but','all','can','get','ini','loh','lho','yah','wah','pas','abis',
+]);
+
+function computeTopKeywords(comments, limit = 20) {
+  const freq = {};
+  for (const c of comments) {
+    const text = (c.content ?? '').toLowerCase();
+    const words = text.replace(/[^\p{L}\p{N}\s]/gu, ' ').split(/\s+/).filter(Boolean);
+    for (const w of words) {
+      if (w.length < 3 || STOPWORDS.has(w) || /^\d+$/.test(w)) continue;
+      freq[w] = (freq[w] || 0) + 1;
+    }
+  }
+  return Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, limit);
+}
+
+function keywordStyle(index, total) {
+  if (index < 5) return { background: 'var(--navy)', color: 'var(--white)', fontSize: 14 };
+  if (index < 12) return { background: 'var(--gold)', color: 'var(--navy)', fontSize: 13 };
+  return { background: 'var(--cream)', color: 'var(--brown)', fontSize: 12 };
+}
+
+function computeCommentSummary(comments, bySentiment, analyzedCount) {
+  if (comments.length === 0) return '';
+  const totalLikes = comments.reduce((s, c) => s + (c.like_count || 0), 0);
+  const mostLiked = [...comments].sort((a, b) => (b.like_count || 0) - (a.like_count || 0))[0];
+
+  let sentimentPart = '';
+  if (analyzedCount > 0) {
+    const dominant = Object.entries(bySentiment).sort((a, b) => b[1] - a[1])[0];
+    const dominantLabel = { positive: 'positif', negative: 'negatif', neutral: 'netral', sarcasm: 'sarkastik', spam: 'spam' }[dominant[0]] ?? dominant[0];
+    const pct = ((dominant[1] / analyzedCount) * 100).toFixed(0);
+    sentimentPart = ` Dari yang sudah dianalisis, mayoritas (${pct}%) bersentimen ${dominantLabel}.`;
+  }
+
+  return `Terkumpul ${comments.length} komentar dengan total ${formatNum(totalLikes)} likes.${sentimentPart}${
+    mostLiked ? ` Komentar paling banyak disukai datang dari @${mostLiked.author || 'unknown'} (${formatNum(mostLiked.like_count || 0)} likes).` : ''
+  }`;
 }
 
 function erClass(er) {
