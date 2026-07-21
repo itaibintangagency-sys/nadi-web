@@ -8,17 +8,20 @@ const NAV_BY_ROLE = {
   super_admin: [
     { href: '/dashboard/brands', label: 'Brands' },
     { href: '/dashboard/alerts', label: 'Alerts' },
+    { href: '/dashboard/reports', label: 'Reports' },
     { href: '/dashboard/export', label: 'Export' },
     { href: '/dashboard/team', label: 'Tim' },
   ],
   admin: [
     { href: '/dashboard/my-scans', label: 'Brand Saya' },
     { href: '/dashboard/alerts', label: 'Alerts' },
+    { href: '/dashboard/reports', label: 'Reports' },
     { href: '/dashboard/export', label: 'Export' },
   ],
   client: [
     { href: '/dashboard/client', label: 'Dashboard' },
     { href: '/dashboard/alerts', label: 'Alerts' },
+    { href: '/dashboard/reports', label: 'Reports' },
   ],
 };
 
