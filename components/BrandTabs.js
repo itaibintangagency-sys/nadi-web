@@ -91,6 +91,21 @@ function InsightTab({ digest, posts, comments }) {
     .sort((a, b) => b[1] - a[1])
     .slice(0, 5);
 
+  const sentimentLabel = { positive: 'Positif', negative: 'Negatif', neutral: 'Netral', sarcasm: 'Sarkasme', spam: 'Spam' };
+  const sentimentColor = {
+    positive: { bg: '#E1F5EE', tx: '#0F6E5C' },
+    negative: { bg: '#FAECE7', tx: '#993C1D' },
+    neutral: { bg: '#E8EDF7', tx: '#223A78' },
+    sarcasm: { bg: '#FBF3DC', tx: '#8C6D0A' },
+    spam: { bg: '#F1ECE3', tx: '#5E5239' },
+  };
+  const analyzedComments = comments.filter((c) => c.sentiment);
+  const bySentiment = analyzedComments.reduce((acc, c) => {
+    acc[c.sentiment] = (acc[c.sentiment] || 0) + 1;
+    return acc;
+  }, {});
+  const sentimentEntries = Object.entries(bySentiment).sort((a, b) => b[1] - a[1]);
+
   return (
     <div className="insight-tab">
       {posts.length > 0 && (
@@ -160,6 +175,33 @@ function InsightTab({ digest, posts, comments }) {
               ))}
             </ol>
           </div>
+
+          {/* SECTION: Distribusi Sentimen */}
+          {sentimentEntries.length > 0 && (
+            <div className="insight-card">
+              <h3>Distribusi Sentimen Komentar</h3>
+              <p className="sentiment-sub">{analyzedComments.length} dari {comments.length} komentar sudah dianalisis</p>
+              <div className="sentiment-bars">
+                {sentimentEntries.map(([sentiment, count]) => {
+                  const pct = ((count / analyzedComments.length) * 100).toFixed(0);
+                  const c = sentimentColor[sentiment] ?? sentimentColor.neutral;
+                  return (
+                    <div key={sentiment} className="sentiment-row">
+                      <div className="sentiment-row-top">
+                        <span className="sentiment-badge" style={{ background: c.bg, color: c.tx }}>
+                          {sentimentLabel[sentiment] ?? sentiment}
+                        </span>
+                        <span className="sentiment-count">{count} ({pct}%)</span>
+                      </div>
+                      <div className="sentiment-bar-bg">
+                        <div className="sentiment-bar-fill" style={{ width: `${pct}%`, background: c.tx }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -205,6 +247,14 @@ function InsightTab({ digest, posts, comments }) {
         .top-video-meta { font-size: 12px; color: var(--brown); margin: 0; }
 
         .platform-list { display: flex; flex-direction: column; gap: 14px; }
+
+        .sentiment-sub { font-size: 12px; color: var(--brown); margin: -8px 0 14px; }
+        .sentiment-bars { display: flex; flex-direction: column; gap: 14px; }
+        .sentiment-row-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
+        .sentiment-badge { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px; }
+        .sentiment-count { font-size: 12px; color: var(--brown); }
+        .sentiment-bar-bg { height: 8px; background: var(--cream); border-radius: 999px; overflow: hidden; }
+        .sentiment-bar-fill { height: 100%; border-radius: 999px; }
         .platform-row-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
         .platform-name { font-size: 13px; font-weight: 600; color: var(--navy); text-transform: capitalize; }
         .platform-count { font-size: 12px; color: var(--brown); }
@@ -899,11 +949,12 @@ function KomentarTable({ comments }) {
       <div className="table-scroll">
         <table>
           <colgroup>
+            <col style={{ width: '14%' }} />
+            <col style={{ width: '38%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '10%' }} />
             <col style={{ width: '16%' }} />
-            <col style={{ width: '48%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '12%' }} />
           </colgroup>
           <thead>
             <tr>
@@ -911,6 +962,7 @@ function KomentarTable({ comments }) {
               <th>Komentar</th>
               <SortableTh label="Platform" sortKey="platform" sort={sort} setSort={setSort} />
               <SortableTh label="Likes" sortKey="like_count" sort={sort} setSort={setSort} />
+              <SortableTh label="Sentimen" sortKey="sentiment" sort={sort} setSort={setSort} />
               <SortableTh label="Tanggal" sortKey="commented_at" sort={sort} setSort={setSort} />
             </tr>
           </thead>
@@ -923,6 +975,15 @@ function KomentarTable({ comments }) {
                   <span className="platform-tag">{c.platform}</span>
                 </td>
                 <td>{formatNum(c.like_count)}</td>
+                <td>
+                  {c.sentiment ? (
+                    <span className="sentiment-cell-badge" style={sentimentCellStyle(c.sentiment)}>
+                      {sentimentCellLabel(c.sentiment)}
+                    </span>
+                  ) : (
+                    <span className="no-sentiment">—</span>
+                  )}
+                </td>
                 <td className="date-cell">{c.commented_at ? new Date(c.commented_at).toLocaleDateString('id-ID') : '—'}</td>
               </tr>
             ))}
@@ -1035,6 +1096,23 @@ function EmptyState({ text }) {
       `}</style>
     </div>
   );
+}
+
+const SENTIMENT_STYLES = {
+  positive: { background: '#E1F5EE', color: '#0F6E5C' },
+  negative: { background: '#FAECE7', color: '#993C1D' },
+  neutral: { background: '#E8EDF7', color: '#223A78' },
+  sarcasm: { background: '#FBF3DC', color: '#8C6D0A' },
+  spam: { background: '#F1ECE3', color: '#5E5239' },
+};
+const SENTIMENT_LABELS = { positive: 'Positif', negative: 'Negatif', neutral: 'Netral', sarcasm: 'Sarkasme', spam: 'Spam' };
+
+function sentimentCellStyle(sentiment) {
+  const s = SENTIMENT_STYLES[sentiment] ?? SENTIMENT_STYLES.neutral;
+  return { background: s.background, color: s.color, fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 999 };
+}
+function sentimentCellLabel(sentiment) {
+  return SENTIMENT_LABELS[sentiment] ?? sentiment;
 }
 
 function erClass(er) {
