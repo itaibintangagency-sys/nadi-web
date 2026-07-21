@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 
 const PAGE_SIZE_OPTIONS = [10, 30, 50, 100, 300, 500];
 
-export default function BrandTabs({ digest, posts, comments }) {
+export default function BrandTabs({ digest, posts, comments, competitors, snapshots }) {
   const [active, setActive] = useState('insight');
 
   return (
@@ -19,12 +19,18 @@ export default function BrandTabs({ digest, posts, comments }) {
         <button className={active === 'komentar' ? 'active' : ''} onClick={() => setActive('komentar')}>
           Komentar ({comments.length})
         </button>
+        {competitors?.length > 0 && (
+          <button className={active === 'kompetitor' ? 'active' : ''} onClick={() => setActive('kompetitor')}>
+            Kompetitor ({competitors.length})
+          </button>
+        )}
       </div>
 
       <div className="tab-content">
         {active === 'insight' && <InsightTab digest={digest} posts={posts} comments={comments} />}
         {active === 'video' && <VideoTable posts={posts} comments={comments} />}
         {active === 'komentar' && <KomentarTable comments={comments} />}
+        {active === 'kompetitor' && <CompetitorTab competitors={competitors ?? []} snapshots={snapshots ?? []} />}
       </div>
 
       <style jsx>{`
@@ -227,7 +233,82 @@ function InsightTab({ digest, posts, comments }) {
   );
 }
 
-// ── Sort helper ──────────────────────────────────────────────────────────
+// ── Kompetitor Tab ───────────────────────────────────────────────────────
+function CompetitorTab({ competitors, snapshots }) {
+  if (competitors.length === 0) {
+    return <EmptyState text="Belum ada kompetitor yang ditandai untuk brand ini." />;
+  }
+
+  const latestByCompetitor = competitors.reduce((acc, name) => {
+    const matches = snapshots.filter((s) => s.competitor_name === name);
+    const latest = matches.sort((a, b) => new Date(b.snapshot_date) - new Date(a.snapshot_date))[0];
+    acc[name] = latest ?? null;
+    return acc;
+  }, {});
+
+  return (
+    <div className="competitor-tab">
+      {competitors.map((name) => {
+        const snap = latestByCompetitor[name];
+        return (
+          <div key={name} className="competitor-card">
+            <h3>{name}</h3>
+            {!snap ? (
+              <p className="no-data">Belum ada data perbandingan untuk kompetitor ini.</p>
+            ) : (
+              <>
+                <div className="metric-row">
+                  <div>
+                    <span className="metric-label">Share of Voice</span>
+                    <span className="metric-value">{snap.share_of_voice != null ? `${snap.share_of_voice}%` : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="metric-label">Engagement Rate</span>
+                    <span className="metric-value">{snap.engagement_rate != null ? `${snap.engagement_rate}%` : '—'}</span>
+                  </div>
+                  <div>
+                    <span className="metric-label">Update Terakhir</span>
+                    <span className="metric-value-sm">{new Date(snap.snapshot_date).toLocaleDateString('id-ID')}</span>
+                  </div>
+                </div>
+                {snap.gap_analysis && (
+                  <div className="gap-box">
+                    <p className="gap-label">Gap Analysis</p>
+                    <p className="gap-text">{snap.gap_analysis}</p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
+
+      <style jsx>{`
+        .competitor-tab { display: flex; flex-direction: column; gap: 16px; }
+        .competitor-card {
+          background: var(--white);
+          border: 1px solid var(--line);
+          border-radius: 16px;
+          padding: 20px 22px;
+        }
+        .competitor-card h3 { font-size: 15px; color: var(--navy); margin: 0 0 12px; }
+        .no-data { font-size: 13px; color: var(--brown); margin: 0; }
+
+        .metric-row { display: flex; gap: 24px; margin-bottom: 14px; flex-wrap: wrap; }
+        .metric-row > div { display: flex; flex-direction: column; gap: 2px; }
+        .metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--brown); }
+        .metric-value { font-size: 20px; font-weight: 700; color: var(--navy); font-family: 'Fraunces', serif; }
+        .metric-value-sm { font-size: 13px; font-weight: 600; color: var(--ink); }
+
+        .gap-box { background: var(--cream); border-radius: 10px; padding: 12px 14px; }
+        .gap-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.03em; color: var(--brown); margin: 0 0 6px; }
+        .gap-text { font-size: 13px; color: var(--ink); line-height: 1.6; margin: 0; }
+      `}</style>
+    </div>
+  );
+}
+
+
 function sortData(data, sortKey, sortDir) {
   if (!sortKey) return data;
   return [...data].sort((a, b) => {

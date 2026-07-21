@@ -17,6 +17,7 @@ export default function EditBrandForm({ brand }) {
   const [clientName, setClientName] = useState(brand.client_name || '');
   const [clientContact, setClientContact] = useState(brand.client_contact || '');
   const [platforms, setPlatforms] = useState(brand.platforms || []);
+  const [competitorsText, setCompetitorsText] = useState((brand.competitors || []).join(', '));
   const [status, setStatus] = useState(brand.status || 'active');
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -40,6 +41,10 @@ export default function EditBrandForm({ brand }) {
         client_name: clientName,
         client_contact: clientContact || null,
         platforms,
+        competitors: competitorsText
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean),
         status,
       }),
     });
@@ -120,6 +125,17 @@ export default function EditBrandForm({ brand }) {
               </button>
             ))}
           </div>
+        </div>
+
+        <div className="field">
+          <label>Kompetitor (pisahkan dengan koma)</label>
+          <input
+            type="text"
+            value={competitorsText}
+            onChange={(e) => setCompetitorsText(e.target.value)}
+            className="input-field"
+            placeholder="Brand A, Brand B, Brand C"
+          />
         </div>
 
         <div className="field">
