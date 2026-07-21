@@ -12,11 +12,12 @@ export default async function BrandDetailPage({ params }) {
   const { id } = params;
   const supabase = createClient();
 
-  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }] = await Promise.all([
+  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }] = await Promise.all([
     supabase.from('brands').select('*').eq('id', id).single(),
     supabase.from('raw_posts').select('*').eq('brand_id', id).order('posted_at', { ascending: false }),
     supabase.from('raw_comments').select('*').eq('brand_id', id).order('commented_at', { ascending: false }).limit(500),
     supabase.from('daily_digests').select('*').eq('brand_id', id).order('digest_date', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('brand_stats').select('*').eq('brand_id', id).maybeSingle(),
   ]);
 
   if (!brand) {
@@ -28,13 +29,13 @@ export default async function BrandDetailPage({ params }) {
     );
   }
 
-  const totalViews = posts?.reduce((sum, p) => sum + (p.views || 0), 0) ?? 0;
-  const totalLikes = posts?.reduce((sum, p) => sum + (p.likes || 0), 0) ?? 0;
-  const totalComments = posts?.reduce((sum, p) => sum + (p.comments_count || 0), 0) ?? 0;
-  const avgEngagement =
-    posts?.length > 0
-      ? (posts.reduce((sum, p) => sum + (p.engagement_rate || 0), 0) / posts.length).toFixed(2)
-      : '0.00';
+  // Stat card ambil dari view brand_stats (dihitung di database) — tidak
+  // lagi tergantung array `posts` yang dipakai tabel/tab (yang bisa saja
+  // ke depannya di-limit terpisah untuk alasan performa).
+  const totalViews = stats?.total_views ?? 0;
+  const totalLikes = stats?.total_likes ?? 0;
+  const totalComments = stats?.total_comments ?? 0;
+  const avgEngagement = Number(stats?.avg_engagement_rate ?? 0).toFixed(2);
 
   return (
     <div className="brand-detail">

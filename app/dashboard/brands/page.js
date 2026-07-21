@@ -14,27 +14,20 @@ export default async function BrandsPage() {
     .select('id, name, client_name, platforms, status, start_date, end_date, created_at')
     .order('created_at', { ascending: false });
 
-  // Ambil semua raw_posts sekaligus untuk brand-brand ini, lalu agregasi per brand_id
-  // di sisi server — hindari 1 query terpisah per card.
+  // Ambil stat teragregasi dari view brand_stats (dihitung di database,
+  // bukan fetch-semua-lalu-jumlah-di-JS — lebih cepat & tidak berisiko
+  // kepotong limit baris kalau data brand sudah besar).
   const brandIds = (brands ?? []).map((b) => b.id);
   let statsByBrand = {};
 
   if (brandIds.length > 0) {
-    const { data: posts } = await supabase
-      .from('raw_posts')
-      .select('brand_id, views, likes, comments_count, engagement_rate')
+    const { data: stats } = await supabase
+      .from('brand_stats')
+      .select('brand_id, total_views, total_likes, total_comments, avg_engagement_rate')
       .in('brand_id', brandIds);
 
-    statsByBrand = (posts ?? []).reduce((acc, p) => {
-      const s = acc[p.brand_id] ?? { views: 0, likes: 0, comments: 0, erSum: 0, erCount: 0 };
-      s.views += p.views || 0;
-      s.likes += p.likes || 0;
-      s.comments += p.comments_count || 0;
-      if (p.engagement_rate != null) {
-        s.erSum += p.engagement_rate;
-        s.erCount += 1;
-      }
-      acc[p.brand_id] = s;
+    statsByBrand = (stats ?? []).reduce((acc, s) => {
+      acc[s.brand_id] = s;
       return acc;
     }, {});
   }
@@ -65,8 +58,8 @@ export default async function BrandsPage() {
 
       <div className="grid">
         {brands?.map((b, i) => {
-          const s = statsByBrand[b.id] ?? { views: 0, likes: 0, comments: 0, erSum: 0, erCount: 0 };
-          const avgEr = s.erCount > 0 ? (s.erSum / s.erCount).toFixed(2) : '0.00';
+          const s = statsByBrand[b.id] ?? { total_views: 0, total_likes: 0, total_comments: 0, avg_engagement_rate: 0 };
+          const avgEr = Number(s.avg_engagement_rate ?? 0).toFixed(2);
 
           return (
             <Reveal delay={i * 70} key={b.id}>
@@ -92,15 +85,15 @@ export default async function BrandsPage() {
                 <div className="mini-stats">
                   <div>
                     <span className="mini-label">Views</span>
-                    <span className="mini-value">{formatNum(s.views)}</span>
+                    <span className="mini-value">{formatNum(s.total_views)}</span>
                   </div>
                   <div>
                     <span className="mini-label">Likes</span>
-                    <span className="mini-value">{formatNum(s.likes)}</span>
+                    <span className="mini-value">{formatNum(s.total_likes)}</span>
                   </div>
                   <div>
                     <span className="mini-label">Komentar</span>
-                    <span className="mini-value">{formatNum(s.comments)}</span>
+                    <span className="mini-value">{formatNum(s.total_comments)}</span>
                   </div>
                   <div>
                     <span className="mini-label">Avg ER</span>
