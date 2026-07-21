@@ -12,6 +12,12 @@ export default async function BrandDetailPage({ params }) {
   const { id } = params;
   const supabase = createClient();
 
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
+  const isSuperAdmin = profile?.role === 'super_admin';
+
   const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }] = await Promise.all([
     supabase.from('brands').select('*').eq('id', id).single(),
     supabase.from('raw_posts').select('*').eq('brand_id', id).order('posted_at', { ascending: false }),
@@ -61,6 +67,11 @@ export default async function BrandDetailPage({ params }) {
               </div>
             )}
           </div>
+          {isSuperAdmin && (
+            <Link href={`/dashboard/brands/${brand.id}/edit`} className="edit-link">
+              Edit Brand
+            </Link>
+          )}
         </div>
       </Reveal>
 
@@ -83,7 +94,25 @@ export default async function BrandDetailPage({ params }) {
         .back-link { font-size: 13px; color: var(--brown); text-decoration: none; }
         .back-link:hover { color: var(--navy); }
 
-        .header-row { margin: 16px 0 28px; }
+        .header-row {
+          margin: 16px 0 28px;
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 16px;
+          flex-wrap: wrap;
+        }
+        .edit-link {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--navy);
+          border: 1px solid var(--line);
+          padding: 7px 16px;
+          border-radius: 8px;
+          text-decoration: none;
+          white-space: nowrap;
+        }
+        .edit-link:hover { border-color: var(--navy); background: var(--cream); }
         .status-badge {
           font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 999px;
           display: inline-block; margin-bottom: 10px;
