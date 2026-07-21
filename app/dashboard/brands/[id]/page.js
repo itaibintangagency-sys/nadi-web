@@ -18,12 +18,13 @@ export default async function BrandDetailPage({ params }) {
   const { data: profile } = await supabase.from('profiles').select('role').eq('id', user?.id).single();
   const isSuperAdmin = profile?.role === 'super_admin';
 
-  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }] = await Promise.all([
+  const [{ data: brand }, { data: posts }, { data: comments }, { data: digest }, { data: stats }, { data: snapshots }] = await Promise.all([
     supabase.from('brands').select('*').eq('id', id).single(),
     supabase.from('raw_posts').select('*').eq('brand_id', id).order('posted_at', { ascending: false }),
     supabase.from('raw_comments').select('*').eq('brand_id', id).order('commented_at', { ascending: false }).limit(500),
     supabase.from('daily_digests').select('*').eq('brand_id', id).order('digest_date', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('brand_stats').select('*').eq('brand_id', id).maybeSingle(),
+    supabase.from('competitor_snapshots').select('*').eq('brand_id', id),
   ]);
 
   if (!brand) {
@@ -85,7 +86,7 @@ export default async function BrandDetailPage({ params }) {
       </Reveal>
 
       <Reveal delay={160}>
-        <BrandTabs digest={digest} posts={posts ?? []} comments={comments ?? []} />
+        <BrandTabs digest={digest} posts={posts ?? []} comments={comments ?? []} competitors={brand.competitors ?? []} snapshots={snapshots ?? []} />
       </Reveal>
 
       <style>{`
