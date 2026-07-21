@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import TeamInviteForm from '@/components/TeamInviteForm';
+import ManageBrandsButton from '@/components/ManageBrandsButton';
 import Reveal from '@/components/Reveal';
 
 export const dynamic = 'force-dynamic';
@@ -29,6 +30,7 @@ export default async function TeamPage() {
                 <th>Nama</th>
                 <th>Role</th>
                 <th>Bergabung</th>
+                <th>Brand</th>
               </tr>
             </thead>
             <tbody>
@@ -41,6 +43,11 @@ export default async function TeamPage() {
                     </span>
                   </td>
                   <td>{new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+                  <td>
+                    {p.role !== 'super_admin' && (
+                      <ManageBrandsButton userId={p.id} userName={p.full_name} brands={brands ?? []} />
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>
