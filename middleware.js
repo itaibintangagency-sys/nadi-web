@@ -6,8 +6,8 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse } from 'next/server';
 
-// Route yang cuma boleh diakses super_admin
-const SUPER_ADMIN_ONLY = ['/dashboard/brands', '/dashboard/team', '/dashboard/add-brand'];
+// Route yang cuma boleh diakses super_admin (persis, bukan sub-path)
+const SUPER_ADMIN_ONLY_EXACT = ['/dashboard/brands', '/dashboard/team', '/dashboard/add-brand'];
 
 // Route yang boleh diakses admin & super_admin, TAPI TIDAK client
 const ADMIN_AND_ABOVE = ['/dashboard/my-scans', '/dashboard/export'];
@@ -63,7 +63,16 @@ export async function middleware(request) {
       return NextResponse.redirect(new URL('/dashboard/client', request.url));
     }
 
-    if (SUPER_ADMIN_ONLY.some((p) => path.startsWith(p)) && role !== 'super_admin') {
+    // /dashboard/brands (list, PERSIS) — super_admin only
+    if (SUPER_ADMIN_ONLY_EXACT.some((p) => path === p) && role !== 'super_admin') {
+      return NextResponse.redirect(new URL(homeForRole(role), request.url));
+    }
+
+    // /dashboard/brands/[id] (detail, sub-path) — super_admin & admin,
+    // client TIDAK (client punya halamannya sendiri di /dashboard/client).
+    // RLS tetap yang menentukan admin/super_admin benar-benar boleh lihat
+    // brand yang mana — ini cuma soal boleh/tidak buka route-nya.
+    if (path.startsWith('/dashboard/brands/') && role === 'client') {
       return NextResponse.redirect(new URL(homeForRole(role), request.url));
     }
 
