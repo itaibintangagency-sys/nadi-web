@@ -89,7 +89,11 @@ export default function DashboardNav({ role, email, fullName }) {
         .links {
           display: flex;
           gap: 20px;
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+          scrollbar-width: none;
         }
+        .links::-webkit-scrollbar { display: none; }
         .links :global(a) {
           color: rgba(255, 239, 202, 0.7);
           font-size: 13px;
@@ -120,6 +124,13 @@ export default function DashboardNav({ role, email, fullName }) {
         .email {
           font-size: 12px;
           color: rgba(255, 239, 202, 0.6);
+        }
+
+        @media (max-width: 640px) {
+          .dashboard-nav { padding: 12px 16px; }
+          .left { gap: 16px; width: 100%; }
+          .links :global(a) { flex-shrink: 0; }
+          .email { display: none; }
         }
       `}</style>
     </header>
