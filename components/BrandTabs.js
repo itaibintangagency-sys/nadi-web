@@ -19,6 +19,9 @@ export default function BrandTabs({ digest, posts, comments, competitors, snapsh
         <button className={active === 'komentar' ? 'active' : ''} onClick={() => setActive('komentar')}>
           Komentar ({comments.length})
         </button>
+        <button className={active === 'hashtag' ? 'active' : ''} onClick={() => setActive('hashtag')}>
+          Hashtag
+        </button>
         {competitors?.length > 0 && (
           <button className={active === 'kompetitor' ? 'active' : ''} onClick={() => setActive('kompetitor')}>
             Kompetitor ({competitors.length})
@@ -30,6 +33,7 @@ export default function BrandTabs({ digest, posts, comments, competitors, snapsh
         {active === 'insight' && <InsightTab digest={digest} posts={posts} comments={comments} />}
         {active === 'video' && <VideoTable posts={posts} comments={comments} />}
         {active === 'komentar' && <KomentarTable comments={comments} />}
+        {active === 'hashtag' && <HashtagTab posts={posts} comments={comments} />}
         {active === 'kompetitor' && <CompetitorTab competitors={competitors ?? []} snapshots={snapshots ?? []} />}
       </div>
 
@@ -314,6 +318,176 @@ function InsightTab({ digest, posts, comments }) {
         .score-label { font-size: 13px; color: var(--brown); }
         .score-value { font-size: 24px; font-weight: 700; color: var(--navy); font-family: 'Fraunces', serif; }
         .digest-text { font-size: 14px; line-height: 1.8; color: var(--ink); white-space: pre-wrap; margin: 0; }
+      `}</style>
+    </div>
+  );
+}
+
+// ── Hashtag Tab ──────────────────────────────────────────────────────────
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+  return [...new Set(matches.map((h) => h.toLowerCase()))];
+}
+
+function HashtagTab({ posts, comments }) {
+  const [sortVideo, setSortVideoState] = useState({ key: 'count', dir: 'desc' });
+  const [sortComment, setSortCommentState] = useState({ key: 'count', dir: 'desc' });
+
+  function setSortVideo(key) {
+    setSortVideoState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
+  }
+  function setSortComment(key) {
+    setSortCommentState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
+  }
+
+  const videoHashtags = useMemo(() => {
+    const map = {};
+    for (const p of posts) {
+      const tags = p.hashtags?.length > 0 ? p.hashtags.map((h) => (h.startsWith('#') ? h.toLowerCase() : `#${h.toLowerCase()}`)) : extractHashtags(p.caption);
+      const uniqueTags = [...new Set(tags)];
+      for (const tag of uniqueTags) {
+        map[tag] = map[tag] || { tag, count: 0, views: 0, likes: 0 };
+        map[tag].count += 1;
+        map[tag].views += p.views || 0;
+        map[tag].likes += p.likes || 0;
+      }
+    }
+    return sortData(Object.values(map), sortVideo.key, sortVideo.dir).slice(0, 50);
+  }, [posts, sortVideo]);
+
+  const commentHashtags = useMemo(() => {
+    const map = {};
+    for (const c of comments) {
+      const tags = extractHashtags(c.content);
+      for (const tag of tags) {
+        map[tag] = map[tag] || { tag, count: 0, likes: 0 };
+        map[tag].count += 1;
+        map[tag].likes += c.like_count || 0;
+      }
+    }
+    return sortData(Object.values(map), sortComment.key, sortComment.dir).slice(0, 50);
+  }, [comments, sortComment]);
+
+  if (videoHashtags.length === 0 && commentHashtags.length === 0) {
+    return <EmptyState text="Belum ada hashtag yang terdeteksi dari caption video maupun komentar." />;
+  }
+
+  return (
+    <div className="hashtag-tab">
+      <div className="hashtag-section">
+        <h3>Hashtag di Caption Video {videoHashtags.length > 0 && `(top ${videoHashtags.length})`}</h3>
+        {videoHashtags.length === 0 ? (
+          <p className="hashtag-empty">Tidak ada hashtag terdeteksi di caption video.</p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <colgroup>
+                <col style={{ width: '40%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '20%' }} />
+                <col style={{ width: '20%' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <SortableTh label="Hashtag" sortKey="tag" sort={sortVideo} setSort={setSortVideo} />
+                  <SortableTh label="Jumlah Video" sortKey="count" sort={sortVideo} setSort={setSortVideo} />
+                  <SortableTh label="Total Views" sortKey="views" sort={sortVideo} setSort={setSortVideo} />
+                  <SortableTh label="Total Likes" sortKey="likes" sort={sortVideo} setSort={setSortVideo} />
+                </tr>
+              </thead>
+              <tbody>
+                {videoHashtags.map((h) => (
+                  <tr key={h.tag} className="data-row-static">
+                    <td className="hashtag-cell">{h.tag}</td>
+                    <td>{h.count}</td>
+                    <td>{formatNum(h.views)}</td>
+                    <td>{formatNum(h.likes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="hashtag-section">
+        <h3>Hashtag di Komentar {commentHashtags.length > 0 && `(top ${commentHashtags.length})`}</h3>
+        {commentHashtags.length === 0 ? (
+          <p className="hashtag-empty">Tidak ada hashtag terdeteksi di komentar.</p>
+        ) : (
+          <div className="table-scroll">
+            <table>
+              <colgroup>
+                <col style={{ width: '50%' }} />
+                <col style={{ width: '25%' }} />
+                <col style={{ width: '25%' }} />
+              </colgroup>
+              <thead>
+                <tr>
+                  <SortableTh label="Hashtag" sortKey="tag" sort={sortComment} setSort={setSortComment} />
+                  <SortableTh label="Jumlah Komentar" sortKey="count" sort={sortComment} setSort={setSortComment} />
+                  <SortableTh label="Total Likes" sortKey="likes" sort={sortComment} setSort={setSortComment} />
+                </tr>
+              </thead>
+              <tbody>
+                {commentHashtags.map((h) => (
+                  <tr key={h.tag} className="data-row-static">
+                    <td className="hashtag-cell">{h.tag}</td>
+                    <td>{h.count}</td>
+                    <td>{formatNum(h.likes)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <style jsx>{`
+        .hashtag-tab { display: flex; flex-direction: column; gap: 28px; }
+        .hashtag-section h3 {
+          font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;
+          color: var(--navy); margin: 0 0 14px;
+        }
+        .hashtag-empty { font-size: 13px; color: var(--brown); }
+        .hashtag-cell { color: var(--navy); font-weight: 600; }
+
+        .table-scroll {
+          overflow-x: auto;
+          border: 1px solid var(--line);
+          border-radius: 12px;
+        }
+        table {
+          width: 100%;
+          border-collapse: collapse;
+          table-layout: fixed;
+          font-size: 13px;
+          min-width: 420px;
+          background: var(--white);
+        }
+        th {
+          text-align: left;
+          padding: 12px 14px;
+          background: var(--cream);
+          color: var(--navy);
+          font-size: 12.5px;
+          font-weight: 700;
+          cursor: pointer;
+          user-select: none;
+          white-space: nowrap;
+          border-bottom: 2px solid var(--gold);
+        }
+        th:hover { color: var(--gold); }
+        th.active-sort { color: var(--gold); }
+        td {
+          text-align: left;
+          padding: 12px 14px;
+          border-bottom: 1px solid var(--line);
+          white-space: nowrap;
+        }
+        .data-row-static:nth-child(even) { background: #FBF8EF; }
+        .data-row-static:hover { background: var(--cream); }
       `}</style>
     </div>
   );
