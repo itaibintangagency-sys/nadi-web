@@ -32,6 +32,31 @@ export default async function BrandsPage() {
     }, {});
   }
 
+  // Brand yang belum punya video sama sekali kemungkinan masih onboarding —
+  // cek workflow_logs untuk tahu tahap prosesnya sekarang. (brand_stats view
+  // pakai GROUP BY raw_posts, jadi brand tanpa video tidak akan muncul di sana.)
+  const newBrandIds = (brands ?? []).filter((b) => !statsByBrand[b.id]).map((b) => b.id);
+
+  let stageByBrand = {};
+  if (newBrandIds.length > 0) {
+    const { data: logs } = await supabase
+      .from('workflow_logs')
+      .select('brand_id, workflow_name, status, started_at')
+      .in('brand_id', newBrandIds)
+      .order('started_at', { ascending: false })
+      .limit(300);
+
+    const logsByBrand = (logs ?? []).reduce((acc, l) => {
+      acc[l.brand_id] = acc[l.brand_id] || [];
+      acc[l.brand_id].push(l);
+      return acc;
+    }, {});
+
+    for (const id of newBrandIds) {
+      stageByBrand[id] = computeBrandStage(logsByBrand[id] ?? []);
+    }
+  }
+
   return (
     <div className="brands-page">
       <div className="header-row">
@@ -60,6 +85,7 @@ export default async function BrandsPage() {
         {brands?.map((b, i) => {
           const s = statsByBrand[b.id] ?? { total_views: 0, total_likes: 0, total_comments: 0, avg_engagement_rate: 0 };
           const avgEr = Number(s.avg_engagement_rate ?? 0).toFixed(2);
+          const stage = stageByBrand[b.id];
 
           return (
             <Reveal delay={i * 70} key={b.id}>
@@ -68,6 +94,12 @@ export default async function BrandsPage() {
                   <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
                     {statusLabel[b.status] ?? b.status}
                   </span>
+                  {stage && (
+                    <span className={`stage-badge stage-${stage.tone}`}>
+                      <span className="stage-dot" />
+                      {stage.label}
+                    </span>
+                  )}
                 </div>
                 <h2>{b.name}</h2>
                 <p className="client-name">{b.client_name}</p>
@@ -168,12 +200,34 @@ export default async function BrandsPage() {
           transform: translateY(-3px);
           box-shadow: 0 12px 24px rgba(51,86,170,0.12);
         }
-        .card-top { margin-bottom: 12px; }
+        .card-top { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
         .status-badge {
           font-size: 11px;
           font-weight: 700;
           padding: 3px 10px;
           border-radius: 999px;
+        }
+        .stage-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          padding: 3px 10px 3px 8px;
+          border-radius: 999px;
+          background: var(--cream);
+          color: var(--brown);
+        }
+        .stage-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--gold);
+        }
+        .stage-active .stage-dot { animation: stage-pulse 1.6s ease-in-out infinite; }
+        @keyframes stage-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.4); }
         }
         .status-active { background: #E1F5EE; color: #0F6E5C; }
         .status-paused { background: #FBF3DC; color: #8C6D0A; }
@@ -210,6 +264,29 @@ export default async function BrandsPage() {
       `}</style>
     </div>
   );
+}
+
+// Tebak tahap onboarding brand dari nama & status workflow_logs terakhir.
+// Ini best-effort — cocokkan pola nama workflow secara longgar (case-insensitive,
+// substring), karena kita tidak selalu tahu persis string workflow_name yang
+// dipakai di n8n.
+function computeBrandStage(logs) {
+  if (logs.length === 0) return { label: 'Menunggu diproses', tone: 'waiting' };
+
+  const isScan = (name) => /wf-?0[235]|scan|scrape|collector/i.test(name || '');
+  const isApproval = (name) => /wf-?01c|approval|approve/i.test(name || '');
+  const isKeyword = (name) => /wf-?01b|keyword/i.test(name || '');
+
+  const scanRunning = logs.find((l) => isScan(l.workflow_name) && l.status === 'running');
+  if (scanRunning) return { label: 'Sedang memindai...', tone: 'active' };
+
+  const approvalPending = logs.find((l) => isApproval(l.workflow_name) && /pending|waiting|menunggu/i.test(l.status || ''));
+  if (approvalPending) return { label: 'Menunggu approval keyword', tone: 'waiting' };
+
+  const keywordLog = logs.find((l) => isKeyword(l.workflow_name));
+  if (keywordLog) return { label: 'Menghasilkan keyword...', tone: 'active' };
+
+  return { label: 'Menunggu diproses', tone: 'waiting' };
 }
 
 function formatNum(n) {
