@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import LogoutButton from '@/components/LogoutButton';
 import PulseLogo from '@/components/PulseLogo';
+import NotificationBell from '@/components/NotificationBell';
 
 const NAV_BY_ROLE = {
   super_admin: [
@@ -61,20 +62,24 @@ export default function DashboardNav({ role, email, fullName }) {
         </nav>
 
         <div className="right">
+          <NotificationBell />
           <span className="role-tag">{ROLE_LABEL[role] ?? role}</span>
           <span className="email">{displayName}</span>
           <LogoutButton />
         </div>
 
-        <button
-          className={`hamburger ${menuOpen ? 'open' : ''}`}
-          onClick={() => setMenuOpen((v) => !v)}
-          aria-label="Menu"
-        >
-          <span />
-          <span />
-          <span />
-        </button>
+        <div className="mobile-actions">
+          <NotificationBell />
+          <button
+            className={`hamburger ${menuOpen ? 'open' : ''}`}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="Menu"
+          >
+            <span />
+            <span />
+            <span />
+          </button>
+        </div>
       </div>
 
       {menuOpen && (
@@ -150,6 +155,13 @@ export default function DashboardNav({ role, email, fullName }) {
         }
         .email { font-size: 12px; color: rgba(255, 239, 202, 0.6); }
 
+        .mobile-actions {
+          display: none;
+          align-items: center;
+          gap: 12px;
+          flex-shrink: 0;
+        }
+
         .hamburger {
           display: none;
           flex-direction: column;
@@ -182,6 +194,7 @@ export default function DashboardNav({ role, email, fullName }) {
         @media (max-width: 720px) {
           .bar { padding: 12px 20px; }
           .links, .right { display: none; }
+          .mobile-actions { display: flex; }
           .hamburger { display: flex; }
 
           .mobile-menu {
