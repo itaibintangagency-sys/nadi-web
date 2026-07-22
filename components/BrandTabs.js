@@ -943,7 +943,110 @@ function VideoTable({ posts, comments }) {
 
       <DetailPanel post={selectedPost} linkedComments={linkedComments} onClose={() => setSelectedPost(null)} />
 
-      <TableStyles />
+      <style jsx>{`
+      .mobile-cards { display: none !important; }
+
+      @media (max-width: 720px) {
+        .table-scroll { display: none !important; }
+        .mobile-cards { display: flex !important; flex-direction: column; gap: 10px; }
+      }
+
+      .mobile-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+      }
+      .mobile-card-static { cursor: default; }
+      .mobile-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .mobile-card-creator { font-size: 13px; font-weight: 700; color: var(--navy); margin: 0 0 4px; }
+      .mobile-card-caption { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
+      .mobile-card-stats {
+        display: flex; gap: 12px; flex-wrap: wrap;
+        font-size: 12px; color: var(--brown); margin-bottom: 10px;
+      }
+      .mobile-card-bottom {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; color: var(--brown); padding-top: 8px; border-top: 1px solid var(--line);
+      }
+
+      .table-scroll {
+        overflow-x: auto;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        font-size: 13px;
+        min-width: 780px;
+        background: var(--white);
+      }
+      th {
+        text-align: left;
+        padding: 12px 14px;
+        background: var(--cream);
+        color: var(--navy);
+        font-size: 12.5px;
+        font-weight: 700;
+        cursor: pointer;
+        user-select: none;
+        white-space: nowrap;
+        border-bottom: 2px solid var(--gold);
+      }
+      th:hover { color: var(--gold); }
+      th.active-sort { color: var(--gold); }
+      td {
+        text-align: left;
+        padding: 12px 14px;
+        vertical-align: middle;
+        overflow: hidden;
+        white-space: nowrap;
+        border-bottom: 1px solid var(--line);
+      }
+      .data-row { cursor: pointer; transition: background 0.15s ease; }
+      .data-row:nth-child(even) { background: #FBF8EF; }
+      .data-row:hover, .data-row:nth-child(even):hover { background: #FFF1C4 !important; }
+      .data-row-static:nth-child(even) { background: #FBF8EF; }
+      .data-row-static:hover, .data-row-static:nth-child(even):hover { background: #FFF1C4 !important; }
+      .creator-cell { color: var(--ink); font-weight: 500; }
+      .caption-cell { color: var(--ink); }
+      .platform-tag {
+        font-size: 10px;
+        text-transform: uppercase;
+        font-weight: 700;
+        color: var(--brown);
+        background: var(--cream);
+        padding: 3px 9px;
+        border-radius: 999px;
+      }
+      .date-cell { color: var(--brown); }
+      .er-badge {
+        display: inline-block;
+        background: #E1F5EE;
+        color: #0F6E5C;
+        font-weight: 700;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 12px;
+      }
+      .link-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        color: var(--navy);
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 12px;
+        border: 1px solid var(--line);
+        padding: 5px 12px;
+        border-radius: 8px;
+        background: var(--white);
+      }
+      .link-btn:hover { border-color: var(--navy); background: var(--cream); }
+    `}</style>
     </div>
   );
 }
@@ -1090,14 +1193,7 @@ function KomentarTable({ comments }) {
 
       <Pagination page={page} totalPages={totalPages} setPage={setPage} totalRows={filtered.length} pageSize={pageSize} />
 
-      <TableStyles />
-    </div>
-  );
-}
-
-function TableStyles() {
-  return (
-    <style jsx>{`
+      <style jsx>{`
       .mobile-cards { display: none !important; }
 
       @media (max-width: 720px) {
@@ -1200,7 +1296,8 @@ function TableStyles() {
         background: var(--white);
       }
       .link-btn:hover { border-color: var(--navy); background: var(--cream); }
-    `}</style>
+      `}</style>
+    </div>
   );
 }
 
