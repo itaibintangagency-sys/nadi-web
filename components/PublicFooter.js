@@ -7,6 +7,7 @@ export default function PublicFooter() {
       <p>{siteConfig.productName} — Brand Intelligence System.</p>
       <div className="footer-links">
         <Link href="/privasi">Kebijakan Privasi</Link>
+        <Link href="/syarat-layanan">Syarat Layanan</Link>
         <Link href="/tentang">Tentang</Link>
         <Link href="/login">Masuk</Link>
       </div>
