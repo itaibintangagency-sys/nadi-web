@@ -331,7 +331,16 @@ function extractHashtags(text) {
 }
 
 function HashtagTab({ posts, comments }) {
+  const [searchVideo, setSearchVideo] = useState('');
+  const [platformVideo, setPlatformVideo] = useState('all');
+  const [pageSizeVideo, setPageSizeVideo] = useState(50);
+  const [pageVideo, setPageVideo] = useState(1);
   const [sortVideo, setSortVideoState] = useState({ key: 'count', dir: 'desc' });
+
+  const [searchComment, setSearchComment] = useState('');
+  const [platformComment, setPlatformComment] = useState('all');
+  const [pageSizeComment, setPageSizeComment] = useState(50);
+  const [pageComment, setPageComment] = useState(1);
   const [sortComment, setSortCommentState] = useState({ key: 'count', dir: 'desc' });
 
   function setSortVideo(key) {
@@ -341,9 +350,13 @@ function HashtagTab({ posts, comments }) {
     setSortCommentState((prev) => (prev.key === key ? { key, dir: prev.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: 'desc' }));
   }
 
-  const videoHashtags = useMemo(() => {
+  const platformOptionsVideo = useMemo(() => [...new Set(posts.map((p) => p.platform).filter(Boolean))], [posts]);
+  const platformOptionsComment = useMemo(() => [...new Set(comments.map((c) => c.platform).filter(Boolean))], [comments]);
+
+  const videoHashtagsAll = useMemo(() => {
+    const base = platformVideo === 'all' ? posts : posts.filter((p) => p.platform === platformVideo);
     const map = {};
-    for (const p of posts) {
+    for (const p of base) {
       const tags = p.hashtags?.length > 0 ? p.hashtags.map((h) => (h.startsWith('#') ? h.toLowerCase() : `#${h.toLowerCase()}`)) : extractHashtags(p.caption);
       const uniqueTags = [...new Set(tags)];
       for (const tag of uniqueTags) {
@@ -353,12 +366,22 @@ function HashtagTab({ posts, comments }) {
         map[tag].likes += p.likes || 0;
       }
     }
-    return sortData(Object.values(map), sortVideo.key, sortVideo.dir).slice(0, 50);
-  }, [posts, sortVideo]);
+    return Object.values(map);
+  }, [posts, platformVideo]);
 
-  const commentHashtags = useMemo(() => {
+  const videoHashtagsFiltered = useMemo(() => {
+    const q = searchVideo.trim().toLowerCase();
+    const base = q ? videoHashtagsAll.filter((h) => h.tag.includes(q)) : videoHashtagsAll;
+    return sortData(base, sortVideo.key, sortVideo.dir);
+  }, [videoHashtagsAll, searchVideo, sortVideo]);
+
+  const videoTotalPages = Math.max(1, Math.ceil(videoHashtagsFiltered.length / pageSizeVideo));
+  const videoPageRows = videoHashtagsFiltered.slice((pageVideo - 1) * pageSizeVideo, pageVideo * pageSizeVideo);
+
+  const commentHashtagsAll = useMemo(() => {
+    const base = platformComment === 'all' ? comments : comments.filter((c) => c.platform === platformComment);
     const map = {};
-    for (const c of comments) {
+    for (const c of base) {
       const tags = extractHashtags(c.content);
       for (const tag of tags) {
         map[tag] = map[tag] || { tag, count: 0, likes: 0 };
@@ -366,86 +389,148 @@ function HashtagTab({ posts, comments }) {
         map[tag].likes += c.like_count || 0;
       }
     }
-    return sortData(Object.values(map), sortComment.key, sortComment.dir).slice(0, 50);
-  }, [comments, sortComment]);
+    return Object.values(map);
+  }, [comments, platformComment]);
 
-  if (videoHashtags.length === 0 && commentHashtags.length === 0) {
+  const commentHashtagsFiltered = useMemo(() => {
+    const q = searchComment.trim().toLowerCase();
+    const base = q ? commentHashtagsAll.filter((h) => h.tag.includes(q)) : commentHashtagsAll;
+    return sortData(base, sortComment.key, sortComment.dir);
+  }, [commentHashtagsAll, searchComment, sortComment]);
+
+  const commentTotalPages = Math.max(1, Math.ceil(commentHashtagsFiltered.length / pageSizeComment));
+  const commentPageRows = commentHashtagsFiltered.slice((pageComment - 1) * pageSizeComment, pageComment * pageSizeComment);
+
+  function handleExportVideo() {
+    downloadCsv(
+      'hashtag-video.csv',
+      videoHashtagsFiltered.map((h) => ({ hashtag: h.tag, video: h.count, views: h.views, likes: h.likes })),
+      [
+        { key: 'hashtag', label: 'Hashtag' },
+        { key: 'video', label: 'Jumlah Video' },
+        { key: 'views', label: 'Total Views' },
+        { key: 'likes', label: 'Total Likes' },
+      ]
+    );
+  }
+
+  function handleExportComment() {
+    downloadCsv(
+      'hashtag-komentar.csv',
+      commentHashtagsFiltered.map((h) => ({ hashtag: h.tag, komentar: h.count, likes: h.likes })),
+      [
+        { key: 'hashtag', label: 'Hashtag' },
+        { key: 'komentar', label: 'Jumlah Komentar' },
+        { key: 'likes', label: 'Total Likes' },
+      ]
+    );
+  }
+
+  if (posts.length === 0 && comments.length === 0) {
     return <EmptyState text="Belum ada hashtag yang terdeteksi dari caption video maupun komentar." />;
   }
 
   return (
     <div className="hashtag-tab">
       <div className="hashtag-section">
-        <h3>Hashtag di Caption Video {videoHashtags.length > 0 && `(top ${videoHashtags.length})`}</h3>
-        {videoHashtags.length === 0 ? (
+        <h3>Hashtag di Caption Video</h3>
+        {videoHashtagsAll.length === 0 ? (
           <p className="hashtag-empty">Tidak ada hashtag terdeteksi di caption video.</p>
         ) : (
-          <div className="table-scroll">
-            <table>
-              <colgroup>
-                <col style={{ width: '40%' }} />
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '20%' }} />
-                <col style={{ width: '20%' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <SortableTh label="Hashtag" sortKey="tag" sort={sortVideo} setSort={setSortVideo} />
-                  <SortableTh label="Jumlah Video" sortKey="count" sort={sortVideo} setSort={setSortVideo} />
-                  <SortableTh label="Total Views" sortKey="views" sort={sortVideo} setSort={setSortVideo} />
-                  <SortableTh label="Total Likes" sortKey="likes" sort={sortVideo} setSort={setSortVideo} />
-                </tr>
-              </thead>
-              <tbody>
-                {videoHashtags.map((h) => (
-                  <tr key={h.tag} className="data-row-static">
-                    <td className="hashtag-cell">{h.tag}</td>
-                    <td>{h.count}</td>
-                    <td>{formatNum(h.views)}</td>
-                    <td>{formatNum(h.likes)}</td>
+          <>
+            <TableControls
+              search={searchVideo}
+              setSearch={(v) => { setSearchVideo(v); setPageVideo(1); }}
+              platform={platformVideo}
+              setPlatform={(v) => { setPlatformVideo(v); setPageVideo(1); }}
+              platformOptions={platformOptionsVideo}
+              pageSize={pageSizeVideo}
+              setPageSize={(v) => { setPageSizeVideo(v); setPageVideo(1); }}
+              onExport={handleExportVideo}
+              exportLabel={`Export CSV (${videoHashtagsFiltered.length})`}
+            />
+            <div className="table-scroll">
+              <table>
+                <colgroup>
+                  <col style={{ width: '40%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '20%' }} />
+                  <col style={{ width: '20%' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <SortableTh label="Hashtag" sortKey="tag" sort={sortVideo} setSort={setSortVideo} />
+                    <SortableTh label="Jumlah Video" sortKey="count" sort={sortVideo} setSort={setSortVideo} />
+                    <SortableTh label="Total Views" sortKey="views" sort={sortVideo} setSort={setSortVideo} />
+                    <SortableTh label="Total Likes" sortKey="likes" sort={sortVideo} setSort={setSortVideo} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {videoPageRows.map((h) => (
+                    <tr key={h.tag} className="data-row-static">
+                      <td className="hashtag-cell">{h.tag}</td>
+                      <td>{h.count}</td>
+                      <td>{formatNum(h.views)}</td>
+                      <td>{formatNum(h.likes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={pageVideo} totalPages={videoTotalPages} setPage={setPageVideo} totalRows={videoHashtagsFiltered.length} pageSize={pageSizeVideo} />
+          </>
         )}
       </div>
 
       <div className="hashtag-section">
-        <h3>Hashtag di Komentar {commentHashtags.length > 0 && `(top ${commentHashtags.length})`}</h3>
-        {commentHashtags.length === 0 ? (
+        <h3>Hashtag di Komentar</h3>
+        {commentHashtagsAll.length === 0 ? (
           <p className="hashtag-empty">Tidak ada hashtag terdeteksi di komentar.</p>
         ) : (
-          <div className="table-scroll">
-            <table>
-              <colgroup>
-                <col style={{ width: '50%' }} />
-                <col style={{ width: '25%' }} />
-                <col style={{ width: '25%' }} />
-              </colgroup>
-              <thead>
-                <tr>
-                  <SortableTh label="Hashtag" sortKey="tag" sort={sortComment} setSort={setSortComment} />
-                  <SortableTh label="Jumlah Komentar" sortKey="count" sort={sortComment} setSort={setSortComment} />
-                  <SortableTh label="Total Likes" sortKey="likes" sort={sortComment} setSort={setSortComment} />
-                </tr>
-              </thead>
-              <tbody>
-                {commentHashtags.map((h) => (
-                  <tr key={h.tag} className="data-row-static">
-                    <td className="hashtag-cell">{h.tag}</td>
-                    <td>{h.count}</td>
-                    <td>{formatNum(h.likes)}</td>
+          <>
+            <TableControls
+              search={searchComment}
+              setSearch={(v) => { setSearchComment(v); setPageComment(1); }}
+              platform={platformComment}
+              setPlatform={(v) => { setPlatformComment(v); setPageComment(1); }}
+              platformOptions={platformOptionsComment}
+              pageSize={pageSizeComment}
+              setPageSize={(v) => { setPageSizeComment(v); setPageComment(1); }}
+              onExport={handleExportComment}
+              exportLabel={`Export CSV (${commentHashtagsFiltered.length})`}
+            />
+            <div className="table-scroll">
+              <table>
+                <colgroup>
+                  <col style={{ width: '50%' }} />
+                  <col style={{ width: '25%' }} />
+                  <col style={{ width: '25%' }} />
+                </colgroup>
+                <thead>
+                  <tr>
+                    <SortableTh label="Hashtag" sortKey="tag" sort={sortComment} setSort={setSortComment} />
+                    <SortableTh label="Jumlah Komentar" sortKey="count" sort={sortComment} setSort={setSortComment} />
+                    <SortableTh label="Total Likes" sortKey="likes" sort={sortComment} setSort={setSortComment} />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {commentPageRows.map((h) => (
+                    <tr key={h.tag} className="data-row-static">
+                      <td className="hashtag-cell">{h.tag}</td>
+                      <td>{h.count}</td>
+                      <td>{formatNum(h.likes)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={pageComment} totalPages={commentTotalPages} setPage={setPageComment} totalRows={commentHashtagsFiltered.length} pageSize={pageSizeComment} />
+          </>
         )}
       </div>
 
       <style jsx>{`
-        .hashtag-tab { display: flex; flex-direction: column; gap: 28px; }
+        .hashtag-tab { display: flex; flex-direction: column; gap: 36px; }
         .hashtag-section h3 {
           font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em;
           color: var(--navy); margin: 0 0 14px;

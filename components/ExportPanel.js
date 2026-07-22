@@ -3,12 +3,20 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase-browser';
 
+function extractHashtags(text) {
+  if (!text) return [];
+  const matches = text.match(/#[\p{L}\p{N}_]+/gu) ?? [];
+  return [...new Set(matches.map((h) => h.toLowerCase()))];
+}
+
 export default function ExportPanel({ brands }) {
   const supabase = createClient();
   const [brandId, setBrandId] = useState(brands[0]?.id ?? '');
-  const [dataType, setDataType] = useState('video'); // 'video' | 'komentar'
+  const [dataType, setDataType] = useState('video'); // 'video' | 'komentar' | 'hashtag'
+  const [hashtagSource, setHashtagSource] = useState('video'); // 'video' | 'komentar' — cuma relevan kalau dataType === 'hashtag'
   const [platform, setPlatform] = useState('all'); // 'all' | 'tiktok' | 'youtube' | 'instagram'
   const [count, setCount] = useState(null);
+  const [hashtagRows, setHashtagRows] = useState([]);
   const [loadingCount, setLoadingCount] = useState(false);
   const [downloading, setDownloading] = useState(false);
 
@@ -18,6 +26,48 @@ export default function ExportPanel({ brands }) {
 
     async function loadCount() {
       setLoadingCount(true);
+
+      if (dataType === 'hashtag') {
+        // Hashtag itu hasil agregasi, bukan baris mentah — perlu fetch penuh
+        // dulu baru dihitung jumlah hashtag uniknya, hasilnya di-cache untuk
+        // dipakai langsung waktu download (tidak fetch dua kali).
+        const table = hashtagSource === 'video' ? 'raw_posts' : 'raw_comments';
+        const columns = hashtagSource === 'video' ? 'caption, hashtags, views, likes, platform' : 'content, like_count, platform';
+        let query = supabase.from(table).select(columns).eq('brand_id', brandId);
+        if (platform !== 'all') query = query.eq('platform', platform);
+        const { data } = await query;
+
+        const map = {};
+        if (hashtagSource === 'video') {
+          for (const p of data ?? []) {
+            const tags = p.hashtags?.length > 0 ? p.hashtags.map((h) => (h.startsWith('#') ? h.toLowerCase() : `#${h.toLowerCase()}`)) : extractHashtags(p.caption);
+            for (const tag of [...new Set(tags)]) {
+              map[tag] = map[tag] || { hashtag: tag, video: 0, views: 0, likes: 0 };
+              map[tag].video += 1;
+              map[tag].views += p.views || 0;
+              map[tag].likes += p.likes || 0;
+            }
+          }
+        } else {
+          for (const c of data ?? []) {
+            const tags = extractHashtags(c.content);
+            for (const tag of tags) {
+              map[tag] = map[tag] || { hashtag: tag, komentar: 0, likes: 0 };
+              map[tag].komentar += 1;
+              map[tag].likes += c.like_count || 0;
+            }
+          }
+        }
+        const rows = Object.values(map).sort((a, b) => b.likes - a.likes);
+
+        if (!cancelled) {
+          setHashtagRows(rows);
+          setCount(rows.length);
+          setLoadingCount(false);
+        }
+        return;
+      }
+
       const table = dataType === 'video' ? 'raw_posts' : 'raw_comments';
       let query = supabase.from(table).select('id', { count: 'exact', head: true }).eq('brand_id', brandId);
       if (platform !== 'all') query = query.eq('platform', platform);
@@ -32,12 +82,31 @@ export default function ExportPanel({ brands }) {
     return () => {
       cancelled = true;
     };
-  }, [brandId, dataType, platform]);
+  }, [brandId, dataType, hashtagSource, platform]);
 
   async function handleDownload() {
     setDownloading(true);
     const brandName = brands.find((b) => b.id === brandId)?.name ?? 'brand';
     const platformSuffix = platform !== 'all' ? `-${platform}` : '';
+
+    if (dataType === 'hashtag') {
+      const headers =
+        hashtagSource === 'video'
+          ? [
+              { key: 'hashtag', label: 'Hashtag' },
+              { key: 'video', label: 'Jumlah Video' },
+              { key: 'views', label: 'Total Views' },
+              { key: 'likes', label: 'Total Likes' },
+            ]
+          : [
+              { key: 'hashtag', label: 'Hashtag' },
+              { key: 'komentar', label: 'Jumlah Komentar' },
+              { key: 'likes', label: 'Total Likes' },
+            ];
+      downloadCsv(`${slug(brandName)}-hashtag-${hashtagSource}${platformSuffix}.csv`, hashtagRows, headers);
+      setDownloading(false);
+      return;
+    }
 
     if (dataType === 'video') {
       let query = supabase
@@ -106,8 +175,25 @@ export default function ExportPanel({ brands }) {
           <button type="button" className={dataType === 'komentar' ? 'active' : ''} onClick={() => setDataType('komentar')}>
             Komentar
           </button>
+          <button type="button" className={dataType === 'hashtag' ? 'active' : ''} onClick={() => setDataType('hashtag')}>
+            Hashtag
+          </button>
         </div>
       </div>
+
+      {dataType === 'hashtag' && (
+        <div className="field">
+          <label>Sumber Hashtag</label>
+          <div className="type-toggle">
+            <button type="button" className={hashtagSource === 'video' ? 'active' : ''} onClick={() => setHashtagSource('video')}>
+              Caption Video
+            </button>
+            <button type="button" className={hashtagSource === 'komentar' ? 'active' : ''} onClick={() => setHashtagSource('komentar')}>
+              Komentar
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="field">
         <label>Platform</label>
@@ -121,11 +207,11 @@ export default function ExportPanel({ brands }) {
       </div>
 
       <div className="preview-box">
-        <span className="preview-label">Baris siap diunduh</span>
+        <span className="preview-label">{dataType === 'hashtag' ? 'Hashtag unik siap diunduh' : 'Baris siap diunduh'}</span>
         <span className="preview-count">{loadingCount ? '...' : count ?? 0}</span>
       </div>
 
-      <button onClick={handleDownload} disabled={downloading || (count ?? 0) === 0} className="btn-primary download-btn">
+      <button onClick={handleDownload} disabled={downloading || loadingCount || (count ?? 0) === 0} className="btn-primary download-btn">
         {downloading ? 'Menyiapkan file...' : `↓ Download CSV (${count ?? 0} baris)`}
       </button>
 
