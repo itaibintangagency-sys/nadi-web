@@ -52,21 +52,27 @@ export default async function BrandDetailPage({ params }) {
         </Link>
 
         <div className="header-row">
-          <div>
-            <span className={`status-badge ${statusClass[brand.status] ?? 'status-active'}`}>
-              {statusLabel[brand.status] ?? brand.status}
-            </span>
-            <h1>{brand.name}</h1>
-            <p className="client-name">{brand.client_name}</p>
-            {brand.platforms?.length > 0 && (
-              <div className="platform-tags">
-                {brand.platforms.map((p) => (
-                  <span key={p} className="platform-tag">
-                    {p}
-                  </span>
-                ))}
-              </div>
+          <div className="header-main">
+            {brand.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logo_url} alt={brand.name} className="brand-logo" />
             )}
+            <div>
+              <span className={`status-badge ${statusClass[brand.status] ?? 'status-active'}`}>
+                {statusLabel[brand.status] ?? brand.status}
+              </span>
+              <h1>{brand.name}</h1>
+              <p className="client-name">{brand.client_name}</p>
+              {brand.platforms?.length > 0 && (
+                <div className="platform-tags">
+                  {brand.platforms.map((p) => (
+                    <span key={p} className="platform-tag">
+                      {p}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
           {isSuperAdmin && (
             <Link href={`/dashboard/brands/${brand.id}/edit`} className="edit-link">
@@ -102,6 +108,15 @@ export default async function BrandDetailPage({ params }) {
           align-items: flex-start;
           gap: 16px;
           flex-wrap: wrap;
+        }
+        .header-main { display: flex; align-items: flex-start; gap: 16px; }
+        .brand-logo {
+          width: 56px;
+          height: 56px;
+          border-radius: 14px;
+          object-fit: cover;
+          border: 1px solid var(--line);
+          flex-shrink: 0;
         }
         .edit-link {
           font-size: 13px;

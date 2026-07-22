@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase-browser';
 
 const PLATFORM_OPTIONS = ['tiktok', 'instagram', 'youtube'];
 const STATUS_OPTIONS = [
@@ -13,12 +14,15 @@ const STATUS_OPTIONS = [
 
 export default function EditBrandForm({ brand }) {
   const router = useRouter();
+  const supabase = createClient();
   const [name, setName] = useState(brand.name || '');
   const [clientName, setClientName] = useState(brand.client_name || '');
   const [clientContact, setClientContact] = useState(brand.client_contact || '');
   const [platforms, setPlatforms] = useState(brand.platforms || []);
   const [competitorsText, setCompetitorsText] = useState((brand.competitors || []).join(', '));
   const [status, setStatus] = useState(brand.status || 'active');
+  const [logoUrl, setLogoUrl] = useState(brand.logo_url || '');
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -26,6 +30,40 @@ export default function EditBrandForm({ brand }) {
 
   function togglePlatform(p) {
     setPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
+  }
+
+  async function handleLogoChange(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('File logo harus berupa gambar');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Ukuran logo maksimal 2MB');
+      return;
+    }
+
+    setUploadingLogo(true);
+    setError(null);
+
+    const ext = file.name.split('.').pop();
+    const path = `${brand.id}-${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage.from('brand-logos').upload(path, file, {
+      upsert: true,
+    });
+
+    if (uploadError) {
+      setError(`Gagal upload logo: ${uploadError.message}`);
+      setUploadingLogo(false);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage.from('brand-logos').getPublicUrl(path);
+    setLogoUrl(publicUrlData.publicUrl);
+    setUploadingLogo(false);
   }
 
   async function handleSubmit(e) {
@@ -46,6 +84,7 @@ export default function EditBrandForm({ brand }) {
           .map((s) => s.trim())
           .filter(Boolean),
         status,
+        logo_url: logoUrl || null,
       }),
     });
 
@@ -84,6 +123,32 @@ export default function EditBrandForm({ brand }) {
   return (
     <div className="form-wrap">
       <form onSubmit={handleSubmit} className="form-card">
+        <div className="field">
+          <label>Logo Brand</label>
+          <div className="logo-row">
+            <div className="logo-preview">
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="Logo" />
+              ) : (
+                <span className="logo-placeholder">{name.charAt(0).toUpperCase() || '?'}</span>
+              )}
+            </div>
+            <div className="logo-upload-controls">
+              <label className="upload-btn">
+                {uploadingLogo ? 'Mengunggah...' : 'Pilih Gambar'}
+                <input type="file" accept="image/*" onChange={handleLogoChange} disabled={uploadingLogo} hidden />
+              </label>
+              {logoUrl && (
+                <button type="button" className="remove-logo-btn" onClick={() => setLogoUrl('')}>
+                  Hapus Logo
+                </button>
+              )}
+              <p className="logo-hint">PNG/JPG, maks 2MB</p>
+            </div>
+          </div>
+        </div>
+
         <div className="field">
           <label>Nama Brand *</label>
           <input type="text" required value={name} onChange={(e) => setName(e.target.value)} className="input-field" />
@@ -151,7 +216,7 @@ export default function EditBrandForm({ brand }) {
 
         {error && <p className="error-text">{error}</p>}
 
-        <button type="submit" disabled={loading || platforms.length === 0} className="btn-primary submit-btn">
+        <button type="submit" disabled={loading || platforms.length === 0 || uploadingLogo} className="btn-primary submit-btn">
           {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
         </button>
       </form>
@@ -179,6 +244,43 @@ export default function EditBrandForm({ brand }) {
         .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
         @media (max-width: 480px) { .field-row { grid-template-columns: 1fr; } }
         label { font-size: 13px; font-weight: 600; color: var(--brown); }
+
+        .logo-row { display: flex; align-items: center; gap: 16px; }
+        .logo-preview {
+          width: 64px;
+          height: 64px;
+          border-radius: 14px;
+          overflow: hidden;
+          background: var(--cream);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+          border: 1px solid var(--line);
+        }
+        .logo-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .logo-placeholder { font-family: 'Fraunces', serif; font-size: 24px; font-weight: 700; color: var(--navy); }
+        .logo-upload-controls { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+        .upload-btn {
+          font-size: 13px;
+          font-weight: 600;
+          color: var(--navy);
+          border: 1px solid var(--navy);
+          padding: 7px 16px;
+          border-radius: 8px;
+          cursor: pointer;
+        }
+        .upload-btn:hover { background: var(--cream); }
+        .remove-logo-btn {
+          background: transparent;
+          border: none;
+          color: #b3261e;
+          font-size: 12px;
+          cursor: pointer;
+          padding: 0;
+          text-decoration: underline;
+        }
+        .logo-hint { font-size: 11px; color: var(--brown); margin: 0; }
 
         .toggle-group { display: flex; gap: 8px; flex-wrap: wrap; }
         .toggle-group button {

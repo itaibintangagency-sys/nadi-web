@@ -11,7 +11,7 @@ export default async function BrandsPage() {
   const supabase = createClient();
   const { data: brands, error } = await supabase
     .from('brands')
-    .select('id, name, client_name, platforms, status, start_date, end_date, created_at')
+    .select('id, name, client_name, platforms, status, start_date, end_date, created_at, logo_url')
     .order('created_at', { ascending: false });
 
   // Ambil stat teragregasi dari view brand_stats (dihitung di database,
@@ -91,9 +91,19 @@ export default async function BrandsPage() {
             <Reveal delay={i * 70} key={b.id}>
               <Link href={`/dashboard/brands/${b.id}`} className="brand-card">
                 <div className="card-top">
-                  <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
-                    {statusLabel[b.status] ?? b.status}
-                  </span>
+                  <div className="card-top-left">
+                    <div className="card-logo">
+                      {b.logo_url ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={b.logo_url} alt={b.name} />
+                      ) : (
+                        <span>{b.name.charAt(0).toUpperCase()}</span>
+                      )}
+                    </div>
+                    <span className={`status-badge ${statusClass[b.status] ?? 'status-active'}`}>
+                      {statusLabel[b.status] ?? b.status}
+                    </span>
+                  </div>
                   {stage && (
                     <span className={`stage-badge stage-${stage.tone}`}>
                       <span className="stage-dot" />
@@ -200,7 +210,21 @@ export default async function BrandsPage() {
           transform: translateY(-3px);
           box-shadow: 0 12px 24px rgba(51,86,170,0.12);
         }
-        .card-top { margin-bottom: 12px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+        .card-top { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+        .card-top-left { display: flex; align-items: center; gap: 10px; }
+        .card-logo {
+          width: 32px;
+          height: 32px;
+          border-radius: 9px;
+          overflow: hidden;
+          background: var(--cream);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          flex-shrink: 0;
+        }
+        .card-logo img { width: 100%; height: 100%; object-fit: cover; }
+        .card-logo span { font-family: 'Fraunces', serif; font-weight: 700; font-size: 14px; color: var(--navy); }
         .status-badge {
           font-size: 11px;
           font-weight: 700;

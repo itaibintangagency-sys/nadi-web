@@ -29,7 +29,7 @@ export async function PATCH(request, { params }) {
   if (error) return error;
 
   const body = await request.json();
-  const allowed = ['name', 'client_name', 'client_contact', 'platforms', 'status', 'competitors'];
+  const allowed = ['name', 'client_name', 'client_contact', 'platforms', 'status', 'competitors', 'logo_url'];
   const updates = {};
   for (const key of allowed) {
     if (body[key] !== undefined) updates[key] = body[key];
