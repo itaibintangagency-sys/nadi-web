@@ -901,6 +901,44 @@ function VideoTable({ posts, comments }) {
         </table>
       </div>
 
+      <div className="mobile-cards">
+        {pageRows.map((p) => {
+          const link = buildVideoLink(p.platform, p.author, p.post_id);
+          return (
+            <div key={p.id} className="mobile-card" onClick={() => setSelectedPost(p)}>
+              <div className="mobile-card-top">
+                <span className="platform-tag">{p.platform}</span>
+                <span className={erClass(p.engagement_rate)}>{(p.engagement_rate ?? 0).toFixed(2)}% ER</span>
+              </div>
+              <p className="mobile-card-creator">{p.author || '—'}</p>
+              <p className="mobile-card-caption">{truncate(p.caption || '(tanpa caption)', 90)}</p>
+              <div className="mobile-card-stats">
+                <span>👁 {formatNum(p.views)}</span>
+                <span>❤ {formatNum(p.likes)}</span>
+                <span>💬 {formatNum(p.comments_count)}</span>
+                <span>↗ {formatNum(p.shares)}</span>
+              </div>
+              <div className="mobile-card-bottom">
+                <span className="mobile-card-date">
+                  {p.posted_at ? new Date(p.posted_at).toLocaleDateString('id-ID') : '—'}
+                </span>
+                {link && (
+                  <a
+                    href={link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="link-btn"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    ↗ Lihat
+                  </a>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
       <Pagination page={page} totalPages={totalPages} setPage={setPage} totalRows={filtered.length} pageSize={pageSize} />
 
       <DetailPanel post={selectedPost} linkedComments={linkedComments} onClose={() => setSelectedPost(null)} />
@@ -1027,6 +1065,29 @@ function KomentarTable({ comments }) {
         </table>
       </div>
 
+      <div className="mobile-cards">
+        {pageRows.map((c) => (
+          <div key={c.id} className="mobile-card mobile-card-static">
+            <div className="mobile-card-top">
+              <span className="platform-tag">{c.platform}</span>
+              {c.sentiment && (
+                <span className="sentiment-cell-badge" style={sentimentCellStyle(c.sentiment)}>
+                  {sentimentCellLabel(c.sentiment)}
+                </span>
+              )}
+            </div>
+            <p className="mobile-card-creator">{c.author || '—'}</p>
+            <p className="mobile-card-caption">{c.content}</p>
+            <div className="mobile-card-bottom">
+              <span className="mobile-card-date">
+                {c.commented_at ? new Date(c.commented_at).toLocaleDateString('id-ID') : '—'}
+              </span>
+              <span>❤ {formatNum(c.like_count)}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <Pagination page={page} totalPages={totalPages} setPage={setPage} totalRows={filtered.length} pageSize={pageSize} />
 
       <TableStyles />
@@ -1037,6 +1098,33 @@ function KomentarTable({ comments }) {
 function TableStyles() {
   return (
     <style jsx>{`
+      .mobile-cards { display: none; }
+
+      @media (max-width: 720px) {
+        .table-scroll { display: none; }
+        .mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+      }
+
+      .mobile-card {
+        background: var(--white);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 16px;
+        cursor: pointer;
+      }
+      .mobile-card-static { cursor: default; }
+      .mobile-card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+      .mobile-card-creator { font-size: 13px; font-weight: 700; color: var(--navy); margin: 0 0 4px; }
+      .mobile-card-caption { font-size: 13px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
+      .mobile-card-stats {
+        display: flex; gap: 12px; flex-wrap: wrap;
+        font-size: 12px; color: var(--brown); margin-bottom: 10px;
+      }
+      .mobile-card-bottom {
+        display: flex; justify-content: space-between; align-items: center;
+        font-size: 12px; color: var(--brown); padding-top: 8px; border-top: 1px solid var(--line);
+      }
+
       .table-scroll {
         overflow-x: auto;
         border: 1px solid var(--line);
