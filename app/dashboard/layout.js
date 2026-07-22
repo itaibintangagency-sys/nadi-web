@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase-server';
 import DashboardNav from '@/components/DashboardNav';
+import DashboardFooter from '@/components/DashboardFooter';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,6 +20,7 @@ export default async function DashboardLayout({ children }) {
     <div className="dashboard-shell">
       <DashboardNav role={profile?.role ?? 'client'} email={user?.email ?? ''} fullName={profile?.full_name} />
       <main>{children}</main>
+      <DashboardFooter />
     </div>
   );
 }
