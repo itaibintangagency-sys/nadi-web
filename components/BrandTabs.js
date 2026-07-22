@@ -1098,11 +1098,11 @@ function KomentarTable({ comments }) {
 function TableStyles() {
   return (
     <style jsx>{`
-      .mobile-cards { display: none; }
+      .mobile-cards { display: none !important; }
 
       @media (max-width: 720px) {
-        .table-scroll { display: none; }
-        .mobile-cards { display: flex; flex-direction: column; gap: 10px; }
+        .table-scroll { display: none !important; }
+        .mobile-cards { display: flex !important; flex-direction: column; gap: 10px; }
       }
 
       .mobile-card {
