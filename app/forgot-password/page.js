@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase-browser';
 
 export default function ForgotPasswordPage() {
-  const supabase = createClient();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
@@ -16,13 +14,17 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError(null);
 
-    const redirectTo = `${window.location.origin}/auth/callback?next=/reset-password`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    const res = await fetch('/api/auth/forgot-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    });
 
     setLoading(false);
 
-    if (resetError) {
-      setError(resetError.message);
+    if (!res.ok) {
+      const data = await res.json();
+      setError(data.error ?? 'Gagal mengirim link reset');
       return;
     }
 

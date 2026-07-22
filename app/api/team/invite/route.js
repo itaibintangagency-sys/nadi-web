@@ -5,6 +5,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase-server';
 import { createAdminClient } from '@/lib/supabase-admin';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function POST(request) {
   const supabase = createClient();
@@ -26,6 +27,16 @@ export async function POST(request) {
 
   if (callerProfile?.role !== 'super_admin') {
     return NextResponse.json({ error: 'Cuma Super Admin yang bisa mengundang anggota tim' }, { status: 403 });
+  }
+
+  // Rate limit: maks 10 undangan per jam per akun super_admin — cegah spam
+  // kalau akun sempat kena kompromi atau ada yang iseng.
+  const rl = await checkRateLimit(`invite:${user.id}`, 10, 60);
+  if (!rl.allowed) {
+    return NextResponse.json(
+      { error: 'Terlalu banyak undangan dalam 1 jam terakhir. Coba lagi nanti.' },
+      { status: 429 }
+    );
   }
 
   // 2. Validasi payload
