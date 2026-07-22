@@ -13,7 +13,7 @@ export default async function ClientHomePage({ searchParams }) {
 
   const { data: assignments } = await supabase
     .from('user_brands')
-    .select('brand_id, brands(id, name, status)')
+    .select('brand_id, brands(id, name, status, logo_url)')
     .eq('user_id', user?.id);
 
   const myBrands = (assignments ?? []).map((a) => a.brands).filter(Boolean);
@@ -53,28 +53,42 @@ export default async function ClientHomePage({ searchParams }) {
     <div className="client-page">
       <Reveal>
         <div className="header-row">
-          <div>
-            {myBrands.length > 1 ? (
-              <div className="brand-switcher">
-                {myBrands.map((b) => (
-                  <Link
-                    key={b.id}
-                    href={`/dashboard/client?brand=${b.id}`}
-                    className={b.id === selectedId ? 'active' : ''}
-                  >
-                    {b.name}
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <p className="eyebrow">Dashboard Anda</p>
+          <div className="header-main">
+            {brand?.logo_url && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={brand.logo_url} alt={brand.name} className="header-logo" />
             )}
-            <h1>{brand?.name}</h1>
-            {lastUpdated && (
-              <p className="last-updated">
-                <span className="live-dot" /> Terakhir update: {timeAgo(lastUpdated)}
-              </p>
-            )}
+            <div>
+              {myBrands.length > 1 ? (
+                <div className="brand-switcher">
+                  {myBrands.map((b) => (
+                    <Link
+                      key={b.id}
+                      href={`/dashboard/client?brand=${b.id}`}
+                      className={b.id === selectedId ? 'active' : ''}
+                    >
+                      <span className="switcher-logo">
+                        {b.logo_url ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={b.logo_url} alt={b.name} />
+                        ) : (
+                          b.name.charAt(0).toUpperCase()
+                        )}
+                      </span>
+                      {b.name}
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="eyebrow">Dashboard Anda</p>
+              )}
+              <h1>{brand?.name}</h1>
+              {lastUpdated && (
+                <p className="last-updated">
+                  <span className="live-dot" /> Terakhir update: {timeAgo(lastUpdated)}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       </Reveal>
@@ -95,6 +109,11 @@ export default async function ClientHomePage({ searchParams }) {
       <style>{`
         .client-page { padding: 32px; max-width: 1100px; margin: 0 auto; }
         .header-row { margin-bottom: 28px; }
+        .header-main { display: flex; align-items: flex-start; gap: 16px; }
+        .header-logo {
+          width: 56px; height: 56px; border-radius: 14px; object-fit: cover;
+          border: 1px solid var(--line); flex-shrink: 0;
+        }
         .eyebrow {
           font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
           color: var(--gold); font-weight: 700; margin: 0 0 8px;
@@ -104,10 +123,18 @@ export default async function ClientHomePage({ searchParams }) {
 
         .brand-switcher { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
         .brand-switcher a {
-          font-size: 12px; font-weight: 600; padding: 5px 14px; border-radius: 999px;
+          display: inline-flex; align-items: center; gap: 6px;
+          font-size: 12px; font-weight: 600; padding: 4px 14px 4px 4px; border-radius: 999px;
           border: 1px solid var(--line); color: var(--brown); text-decoration: none;
         }
         .brand-switcher a.active { background: var(--navy); color: var(--white); border-color: var(--navy); }
+        .switcher-logo {
+          width: 20px; height: 20px; border-radius: 50%; overflow: hidden;
+          background: var(--cream); color: var(--navy);
+          display: flex; align-items: center; justify-content: center;
+          font-size: 10px; font-weight: 700; flex-shrink: 0;
+        }
+        .switcher-logo img { width: 100%; height: 100%; object-fit: cover; }
 
         .last-updated {
           display: flex; align-items: center; gap: 6px;
